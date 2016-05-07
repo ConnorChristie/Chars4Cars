@@ -1,0 +1,37 @@
+main: me.dasetwas.Chars4Cars
+name: Chars4Cars
+version: 1.0
+author: DasEtwas
+description: Lets you drive cars in Minecraft!
+
+commands:
+   chars4cars:
+      description: Shows info about the Plugin.
+      aliases: [c4c, charsforcars]
+      usage: /chars4cars [reload | info]
+      permission: c4c.info
+      permission-message: You don't have the permission to use that command!
+   givecar:
+      description: Gives you a car.
+      usage: /givecar <Name> <Power> <Mass>
+      permission: c4c.givecar
+      permission-message: You don't have the permission to use that command!
+
+  
+permissions:
+   c4c.*:
+      description: Grants acces to all actions and commands of Chars4Cars
+      children:
+         c4c.dropoverride: true
+         c4c.info: true
+         c4c.owneroverride: true
+         c4c.givecar: true
+   c4c.dropoverride:
+      description: Allows players in Gamemode Creative to get Car drops
+   c4c.givecar:
+      description: Allows players to give them cars using /givecar
+
+
+
+softdepend: [PermissionsEX]
+   
