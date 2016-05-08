@@ -1,7 +1,9 @@
 package me.dasetwas;
 
 import java.util.UUID;
-//ok this is getting annyoing af
+
+import org.bukkit.Bukkit;
+import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -10,6 +12,10 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.material.MaterialData;
+import org.bukkit.scoreboard.DisplaySlot;
+import org.bukkit.scoreboard.Objective;
+import org.bukkit.scoreboard.Score;
+import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.util.Vector;
 
 public class Car {
@@ -21,12 +27,17 @@ public class Car {
 	Minecart car;
 	String name;
 	Location soundLoc;
+	Location climbLoc;
 	double x, y, z;
 	float yaw;
 	double vx, vz, vy;
 	float pitch;
+	float forw;
+	float side;
+	Scoreboard sb = Bukkit.getServer().getScoreboardManager().getNewScoreboard();
 
 	// Physics
+	double steerAngle;
 	double netForce;
 	double engineRPM = 800, lastEngineRPM = 800;
 	int mass;
@@ -51,6 +62,8 @@ public class Car {
 	boolean isLocked;
 	double brakeAcc;
 	float steeringDifference;
+	double lastSpeed;
+	double G;
 
 	/**
 	 * Car constructor
@@ -108,32 +121,51 @@ public class Car {
 		this.vx = car.getVelocity().getX();
 		this.vz = car.getVelocity().getZ();
 		this.vy = car.getVelocity().getY();
+		this.yaw = car.getLocation().getYaw() + 90;
 
 		speed = (Math.sqrt(vx * vx + vz * vz)) * 20;
 
-		clutchPercent = Math.min(1, clutchPercent + 0.15);
+		if (currentGear == 1) {
+			clutchPercent = Math.min(1, clutchPercent + 0.005);
+		} else {
+			clutchPercent = Math.min(1, clutchPercent + 0.075);
+		}
 
+		// Getting all passenger variables and producing throttle and brake
+		// variables
 		if (car.getPassenger() instanceof Player) {
 			passenger = (Player) car.getPassenger();
-			engineRunning = true;
-
 			this.passengerPitch = passenger.getLocation().getPitch();
 			this.passengerYaw = passenger.getLocation().getYaw();
+			engineRunning = true;
 
-			if (passengerPitch >= -7.5f && passengerPitch <= 7.5f) {
-				throttle = 1 - (passengerPitch + 7.5f) / 15;
-			} else if ((passengerPitch < -7.5)) {
-				throttle = 1;
-			} else if (passengerPitch > 7.5) {
-				throttle = 0;
+			if (throttle > 0.5) {
+				throttle = (float) Math.max(0.5, throttle - 0.02);
+			}
+			if (throttle < 0.5 && throttle > 0.25) {
+				throttle = (float) Math.max(0.25, throttle - 0.01);
+			}
+			if (throttle < 0.25) {
+				throttle = (float) Math.max(0, throttle - 0.01);
 			}
 
-			if (passengerPitch > 7.5f && passengerPitch <= 22.5f) {
-				brake = (passengerPitch - 7.5f) / 15;
-			} else if (passengerPitch > 22.5f) {
-				brake = 1;
-			} else {
-				brake = 0;
+			if (forw > 0) {
+				if (brake == 0) {
+					throttle = (float) Math.min(1, throttle + 0.075);
+				} else {
+					brake = (float) Math.max(0, brake - 0.12);
+				}
+			} else if (forw < 0) {
+				if (currentGear == 1) {
+					throttle = 0;
+					brake = (float) Math.min(1, brake + 0.04);
+				} else {
+					if (throttle == 0) {
+						brake = (float) Math.min(1, brake + 0.04);
+					} else {
+						throttle = (float) Math.max(0, throttle - 0.05);
+					}
+				}
 			}
 		} else {
 			brake = 1;
@@ -142,6 +174,19 @@ public class Car {
 			throttle = 0;
 			passenger = null;
 		}
+
+		// Steering and returning to zero
+		if (side != 0) {
+			steerAngle = Math.min(25, Math.max(-25, steerAngle + side * 2));
+		} else {
+			if (steerAngle > 0) {
+				steerAngle = Math.max(0, steerAngle - 10);
+			} else if (steerAngle < 0) {
+				steerAngle = Math.min(0, steerAngle + 10);
+			}
+		}
+
+		this.yaw = (float) (this.yaw + (-steerAngle * (Math.min(Math.abs(speed) / 20, 1)) / Math.max(1, speed / 5)) * 0.5);
 
 		// Set gearRatio to current gear's one.
 		currentGearRatio = gearRatio[currentGear + 1];
@@ -153,6 +198,8 @@ public class Car {
 
 		// Engine simulation in neutral gear, or when in air
 		if (currentGear == 0 || !isOnGround()) {
+
+			// Raise engineRPM to desired throttle * maxEngineRPM
 			double d = throttle * maxEngineRPM - engineRPM;
 			engineRPM = engineRPM - (engineRPM * 0.002) * (1 - throttle);
 			if (throttle * maxEngineRPM > engineRPM) {
@@ -161,59 +208,64 @@ public class Car {
 					engineRPM = 300;
 				}
 			}
+
+			// Keep engine over 800+ RPM
 			if (engineRunning) {
 				engineRPM = Math.max(800 + Math.random() * 10, engineRPM);
 			} else {
+				// If engine cycle collapses, play shutoff sound
 				if (engineRPM < 600 && engineRPM != 0) {
 					engineRPM = 0;
 					car.getLocation().getWorld().playSound(car.getLocation(), Sound.ENTITY_BAT_TAKEOFF, 1, 0.5f);
 				}
 			}
 
+			// Prevent engine from overshooting maxEngineRPM (rev limiter)
 			engineRPM = Math.min(engineRPM, maxEngineRPM);
-			brakeAcc = (brake * 1300 / mass * speed) * 0.1;
+			brakeAcc = (brake * 200 / mass * Math.max(0.8, speed)) * 0.1;
 
+			// Check if brake acceleration would stop the car completely
 			if (speed - brakeAcc < 0) {
 				speed = 0;
 				brakeAcc = 0;
 			}
 
+			// Apply forces with air resistance (drag)
 			speed = speed + getAirDrag() - brakeAcc;
 
-			if (speed > 0 && Math.abs(speed) < 1) {
+			// Round of the speed to not produce very very small decimal numbers
+			if (speed > 0 && Math.abs(speed) < 0.5) {
 				speed = 0;
-			} else if (speed < 0 && Math.abs(speed) < 1) {
+			} else if (speed < 0 && Math.abs(speed) < 0.5) {
 				speed = 0;
 			}
 
 			clutchPercent = 0;
 		} else {
+			double d = throttle * maxEngineRPM - engineRPM;
 
-			engineRPM = ((speed / driveWheelCircumference) * Math.abs(currentGearRatio) * 60 * differentialRatio) * clutchPercent + engineRPM * (1 - clutchPercent);
+			engineRPM = ((speed / driveWheelCircumference) * Math.abs(currentGearRatio) * 60 * differentialRatio) * clutchPercent + (engineRPM + (d * 0.05)) * (1 - clutchPercent);
 
 			// Get force of engine
-
 			if (engineRPM < 800) {
 				engineRPM = 800 + Math.random() * 10;
 			}
 
 			engineAcc = getEngineTorque() * enginePower * throttle * clutchPercent * currentGearRatio * differentialRatio / driveWheelCircumference / mass;
-			brakeAcc = (brake * 1000 / mass * speed) * 0.1;
+			brakeAcc = (brake * 200 / mass * Math.max(0.8, speed)) * 0.1;
 
+			// Check if the RPM limiter has to kick in
 			if (engineRPM > maxEngineRPM) {
 
-				if (currentGear == -1) {
-					if (speed < 0) {
-						engineAcc = engineAcc * 2;
-					} else {
-						engineAcc = -engineAcc * 2;
-					}
+				if (speed < 0) {
+					engineAcc = engineAcc * 2;
+				} else {
+					engineAcc = -engineAcc * 2;
 				}
-
-				engineAcc = -engineAcc * 2;
 			}
 
-			if (currentGear == -1) {
+			// Check if in reverse gear to prevent wrong braking
+			if (speed < 0) {
 				if (speed - brakeAcc > 0) {
 					speed = 0;
 					brakeAcc = 0;
@@ -225,16 +277,22 @@ public class Car {
 				}
 			}
 
+			// Apply forces with air resistance (drag)
 			speed = speed + engineAcc + getAirDrag() - brake;
+
+			if (currentGear > 0 && speed < 0) {
+				clutchPercent = 0;
+				speed = 0;
+			}
 		}
 
-		if (Cars.isClimbable(car.getWorld().getBlockAt((int) (this.x + this.vx), (int) this.y, (int) (this.z + this.vz)).getType())) {
-			this.vy = this.vy + 1;
+		G = Math.abs(speed - lastSpeed) / 0.08;
+
+		climbLoc = new Location(car.getWorld(), this.x + rotateScalar(1 + speed / 15, yaw).getX(), this.y, this.z + rotateScalar(1 + speed / 15, yaw).getZ());
+
+		if (Cars.isClimbable(car.getWorld().getBlockAt(climbLoc).getType()) && Math.abs(speed) > 0.1) {
+			this.vy = this.vy + .08 + speed / 200;
 		}
-
-		System.out.println(car.getWorld().getBlockAt((int) (this.x + this.vx), (int) this.y, (int) (this.z + this.vz)).getType().toString());
-
-		yaw = passengerYaw;
 
 		// *=*=*=* Settter Block
 
@@ -255,26 +313,54 @@ public class Car {
 			soundLoc.getWorld().playSound(car.getLocation(), Sound.BLOCK_CHEST_OPEN, 1, 1);
 		}
 
-		if (Chars4Cars.exhaustSmoke.equalsIgnoreCase("true") && engineRPM > 400) {
-			car.getWorld().spawnParticle(Particle.SMOKE_NORMAL, new Location(car.getWorld(), this.x + rotateScalar(0.7, -this.yaw).getX(), 0, this.z + rotateScalar(0.7, -this.yaw).getX()), 3);
+		if (Chars4Cars.exhaustSmoke && engineRPM > 400) {
+			Vector flyVec = new Vector(rotateScalar(0.2, yaw + 180).getX(), 0.06 + Math.random() / 2, rotateScalar(0.2, yaw + 180).getZ());
+			Location exhaustLoc = new Location(car.getWorld(), this.x + rotateScalar(0.8, yaw + 180).getX(), this.y + 0.1, this.z + rotateScalar(0.8, yaw + 180).getZ());
+
+			ParticleEffect.SMOKE_NORMAL.display(flyVec, 0.4f, exhaustLoc, 20.0);
 		}
 
+		// Print debug information
 		try {
-			passenger.sendMessage("Gear: " + (int) currentGear);
-			passenger.sendMessage("Speed: " + (int) (speed / 1000 * 3600) + " Kb/h");
-			passenger.sendMessage("RPM " + (int) engineRPM);
-			passenger.sendMessage("Throttle: " + throttle);
-			passenger.sendMessage("Brake: " + brake);
-			passenger.sendMessage("Clutchpercent: " + clutchPercent);
-			passenger.sendMessage("Airdrag: " + getAirDrag());
+			if (passenger != null) {
+				try {
+					sb.getObjective("stats").unregister();
+				} catch (Exception e) {
+
+				}
+				Objective stats = sb.registerNewObjective("stats", "dummy");
+				stats.setDisplaySlot(DisplaySlot.SIDEBAR);
+				stats.setDisplayName("Statistics");
+
+				Score scSpeed = stats.getScore("Speed: " + ((int) (speed * 3.6)) + "Kb/h");
+				Score scEngineRPM = stats.getScore("Engine RPM: " + ((int) engineRPM));
+				Score scCurrentGear = stats.getScore("Gear: " + currentGear);
+				Score scThrottle = stats.getScore("Throttle: " + (int) Math.floor(throttle * 100) + "%");
+				Score scBrake = stats.getScore("Brake: " + (int) Math.floor(brake * 100) + "%");
+				scSpeed.setScore(0);
+				scEngineRPM.setScore(1);
+				scCurrentGear.setScore(2);
+				scThrottle.setScore(3);
+				scBrake.setScore(4);
+
+				passenger.setScoreboard(sb);
+			}
 		} catch (Exception e) {
+			e.printStackTrace();
 		}
 
-		// calculate car's speed
+		// Calculate car's speed
 		if (Math.abs(speed) > 0) {
 			this.vx = rotateScalar(speed, this.yaw).getX() / 20;
 			this.vz = rotateScalar(speed, this.yaw).getZ() / 20;
 		} else {
+			this.vx = 0;
+			this.vz = 0;
+		}
+
+		// Check if car is approaching rail
+		if (Cars.isRail(car.getWorld().getBlockAt((int) (car.getLocation().getX() + this.vx), (int) (car.getLocation().getY() + this.vy), (int) (car.getLocation().getZ() + this.vz)).getType())) {
+			// Stop the car
 			this.vx = 0;
 			this.vz = 0;
 		}
@@ -284,6 +370,8 @@ public class Car {
 
 		// to know engineRPM's velocity
 		lastEngineRPM = engineRPM;
+		// to know acceleration
+		lastSpeed = speed;
 		// *=*=*=*
 	}
 
@@ -380,12 +468,35 @@ public class Car {
 	 * @return Air Drag of car
 	 */
 	public double getAirDrag() {
-		return -speed * 10 / mass;
+		return -speed * 9.5 / mass;
 
 	}
 
+	/**
+	 * Removes the car
+	 */
 	public void remove() {
 		car.remove();
+		car.setDamage(-1);
 	}
 
+	/**
+	 * Sets Side. Used for steering.
+	 * 
+	 * @param side
+	 *            amount
+	 */
+	public void setSide(float side) {
+		this.side = side;
+	}
+
+	/**
+	 * Sets Forw. Ued for accelerating.
+	 * 
+	 * @param forw
+	 *            amount
+	 */
+	public void setForw(float forw) {
+		this.forw = forw;
+	}
 }

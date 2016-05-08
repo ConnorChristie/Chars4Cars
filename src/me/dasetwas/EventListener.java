@@ -3,18 +3,10 @@ package me.dasetwas;
 import java.util.List;
 import java.util.UUID;
 
-import org.bukkit.event.vehicle.VehicleBlockCollisionEvent;
-import org.bukkit.event.vehicle.VehicleDamageEvent;
-import org.bukkit.event.vehicle.VehicleDestroyEvent;
-import org.bukkit.event.vehicle.VehicleEnterEvent;
-import org.bukkit.event.vehicle.VehicleEntityCollisionEvent;
-import org.bukkit.event.vehicle.VehicleExitEvent;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.block.BlockFace;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -23,6 +15,12 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.vehicle.VehicleDamageEvent;
+import org.bukkit.event.vehicle.VehicleDestroyEvent;
+import org.bukkit.event.vehicle.VehicleEnterEvent;
+import org.bukkit.event.vehicle.VehicleEntityCollisionEvent;
+import org.bukkit.event.vehicle.VehicleExitEvent;
+import org.bukkit.inventory.ItemStack;
 
 public class EventListener implements Listener {
 
@@ -120,10 +118,12 @@ public class EventListener implements Listener {
 	public void lockCar(PlayerInteractEntityEvent piee) {
 		if (Cars.isCar(piee.getRightClicked().getUniqueId())) {
 			if (piee.getPlayer().getUniqueId().equals(Cars.CarMap.get(piee.getRightClicked().getUniqueId()).getOwner())) {
-				if (piee.getPlayer().getInventory().getItemInMainHand().getType().equals(Material.TRIPWIRE_HOOK)) {
-					Cars.CarMap.get(piee.getRightClicked().getUniqueId()).lock();
-					piee.getPlayer().sendMessage(Chars4Cars.carLocked);
-					piee.setCancelled(true);
+				if (Chars4Cars.carLocking) {
+					if (piee.getPlayer().getInventory().getItemInMainHand().getType().equals(Material.TRIPWIRE_HOOK)) {
+						Cars.CarMap.get(piee.getRightClicked().getUniqueId()).lock();
+						piee.getPlayer().sendMessage(Chars4Cars.prefix + Chars4Cars.carLocked);
+						piee.setCancelled(true);
+					}
 				}
 			}
 		}
@@ -132,12 +132,22 @@ public class EventListener implements Listener {
 	@EventHandler
 	public void carLeave(VehicleExitEvent vee) {
 		if (Cars.isCar(vee.getVehicle().getUniqueId())) {
+			((Player) vee.getExited()).setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
 			if (((Player) vee.getExited()).getUniqueId().equals(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner())) {
-				Cars.CarMap.get(vee.getVehicle().getUniqueId()).unLock();
-				Bukkit.getPlayer(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner()).sendMessage(Chars4Cars.yourCarUnlocked);
+				if (Chars4Cars.carLocking) {
+					Cars.CarMap.get(vee.getVehicle().getUniqueId()).unLock();
+					Bukkit.getPlayer(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner()).sendMessage(Chars4Cars.prefix + Chars4Cars.yourCarUnlocked);
+					((Player) vee.getExited()).setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
+				}
 			}
 		}
 	}
+
+	/**
+	 * Don't let you dreams be dreams! um.. Don't let entities displace the car.
+	 * 
+	 * @param vece
+	 */
 
 	@EventHandler
 	public void carCollision(VehicleEntityCollisionEvent vece) {
@@ -159,20 +169,20 @@ public class EventListener implements Listener {
 
 			if (vee.getEntered() instanceof Player) {
 
-				if (Chars4Cars.carLocking.equalsIgnoreCase("true")) {
+				if (Chars4Cars.carLocking) {
 					if (!((Player) vee.getEntered()).getUniqueId().equals(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner())) {
 
 						if (Cars.CarMap.get(vee.getVehicle().getUniqueId()).isLocked()) {
-							((Player) vee.getEntered()).sendMessage(Chars4Cars.noEnterCarLocked);
+							((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.noEnterCarLocked);
 							vee.setCancelled(true);
 						} else {
-							((Player) vee.getEntered()).sendMessage(Chars4Cars.doNotOwnCar);
-							Bukkit.getPlayer(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner()).sendMessage(Chars4Cars.yourCarStolen);
+							((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.doNotOwnCar);
+							Bukkit.getPlayer(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner()).sendMessage(Chars4Cars.prefix + Chars4Cars.yourCarStolen);
 						}
 					}
 				} else {
 					if (!((Player) vee.getEntered()).getUniqueId().equals(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner())) {
-						((Player) vee.getEntered()).sendMessage(Chars4Cars.doNotOwnCar);
+						((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.doNotOwnCar);
 						vee.setCancelled(true);
 					}
 				}

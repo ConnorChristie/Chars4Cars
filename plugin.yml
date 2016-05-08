@@ -31,7 +31,6 @@ permissions:
    c4c.givecar:
       description: Allows players to give them cars using /givecar
 
-
-
 softdepend: [PermissionsEX]
+depend: [ProtocolLib]
    

@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.UUID;
 
 import org.bukkit.Material;
+import org.bukkit.material.MaterialData;
 
 public class Cars {
 
@@ -92,7 +93,19 @@ public class Cars {
 			return true;
 		} else if (type.equals(Material.STEP)) {
 			return true;
+		} else if (type.equals(Material.SNOW_BLOCK)) {
 		}
 		return false;
+	}
+
+	public static boolean isRail(Material type) {
+		if (type.equals(Material.RAILS))
+			return true;
+		if (type.equals(Material.ACTIVATOR_RAIL))
+			return true;
+		if (type.equals(Material.DETECTOR_RAIL)) {
+			return true;
+		}
+		return (type.equals(Material.POWERED_RAIL));
 	}
 }
