@@ -8,6 +8,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import net.md_5.bungee.api.ChatColor;
+
 public class CarGetter {
 
 	/**
@@ -23,16 +25,7 @@ public class CarGetter {
 	 *            Car mass
 	 */
 	public static void getCar(Player cmdSender, String name, int enginePower, int carMass) {
-
-		ItemStack car = new ItemStack(Material.MINECART, 1);
-		ItemMeta carMeta = car.getItemMeta();
-		carMeta.setDisplayName(name);
-		List<String> loreList = new ArrayList<String>();
-		loreList.add(Integer.toString(enginePower));
-		loreList.add(Integer.toString(carMass));
-		carMeta.setLore(loreList);
-		car.setItemMeta(carMeta);
-		cmdSender.getInventory().addItem(car);
+		cmdSender.getInventory().addItem(createCar(name, enginePower, carMass));
 	}
 
 	/**
@@ -48,12 +41,13 @@ public class CarGetter {
 	 */
 	public static ItemStack createCar(String name, int enginePower, int carMass) {
 
-		ItemStack car = new ItemStack(Material.MINECART, 1);
+		ItemStack car = new ItemStack(Material.MINECART);
 		ItemMeta carMeta = car.getItemMeta();
 		carMeta.setDisplayName(name);
 		List<String> loreList = new ArrayList<String>();
-		loreList.add(Integer.toString(enginePower));
-		loreList.add(Integer.toString(carMass));
+		loreList.add(ChatColor.DARK_GRAY + "Chars4Cars Car");
+		loreList.add(ChatColor.GREEN + Integer.toString(enginePower));
+		loreList.add(ChatColor.GREEN + Integer.toString(carMass));
 		carMeta.setLore(loreList);
 		car.setItemMeta(carMeta);
 		return car;

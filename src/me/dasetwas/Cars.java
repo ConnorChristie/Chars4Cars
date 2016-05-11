@@ -3,10 +3,14 @@ package me.dasetwas;
 import java.util.HashMap;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.material.MaterialData;
 
 public class Cars {
+	public static int count = 0;
+	public static double avgSpeed;
+	public static double avgGear;
 
 	public static HashMap<UUID, Car> CarMap = new HashMap<UUID, Car>();
 
@@ -33,9 +37,13 @@ public class Cars {
 	 * Cylces through all cars in the HashMap and calls updateCar() on them
 	 */
 	public static void cycleCars() {
+		count++;
+		if (count > 19)
+			count = 0;
 		for (UUID key : CarMap.keySet()) {
 			CarMap.get(key).updateCar();
-			;
+			avgSpeed = (avgSpeed * 100 + CarMap.get(key).speed) / 101;
+			avgGear = (avgGear * 100 + CarMap.get(key).currentGear) / 101;
 		}
 	}
 

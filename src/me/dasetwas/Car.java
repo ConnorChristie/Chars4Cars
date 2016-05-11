@@ -86,7 +86,7 @@ public class Car {
 		this.enginePower = enginePower;
 		this.mass = mass;
 		this.x = spawnLocation.getX() + 0.5d;
-		this.y = spawnLocation.getY() + 1.1d;
+		this.y = spawnLocation.getY() + 1.0d;
 		this.z = spawnLocation.getZ() + 0.5d;
 		this.yaw = yaw;
 		this.name = name;
@@ -94,13 +94,14 @@ public class Car {
 
 		car = (Minecart) spawnLocation.getWorld().spawnEntity(new Location(spawnLocation.getWorld(), x, y, z), EntityType.MINECART);
 
+		car.setCustomName("§aChars4Cars Car:" + name + ":" + enginePower + ":" + mass);
 		car.setDerailedVelocityMod(new Vector(1, 1, 1));
 		car.setFlyingVelocityMod(new Vector(1, 1, 1));
 		car.setSlowWhenEmpty(false);
 		car.setMaxSpeed(100);
 		car.setDisplayBlock(new MaterialData(Material.BARRIER));
 
-		car.teleport(new Location(spawnLocation.getWorld(), x, y, z, yaw, 0));
+		car.teleport(new Location(spawnLocation.getWorld(), x, y, z, yaw - 90, 0));
 
 		this.cockpitID = car.getUniqueId();
 	}
@@ -186,7 +187,7 @@ public class Car {
 			}
 		}
 
-		this.yaw = (float) (this.yaw + (-steerAngle * (Math.min(Math.abs(speed) / 20, 1)) / Math.max(1, speed / 5)) * 0.5);
+		this.yaw = (float) (this.yaw + (-steerAngle * (Math.min(Math.abs(speed) / 20, 1)) / Math.max(1, speed / 5)) * (currentGear == -1 ? -1 : 1) * 0.6);
 
 		// Set gearRatio to current gear's one.
 		currentGearRatio = gearRatio[currentGear + 1];
@@ -222,73 +223,45 @@ public class Car {
 
 			// Prevent engine from overshooting maxEngineRPM (rev limiter)
 			engineRPM = Math.min(engineRPM, maxEngineRPM);
-			brakeAcc = (brake * 200 / mass * Math.max(0.8, speed)) * 0.1;
+			brakeAcc = brake / 8;
 
-			// Check if brake acceleration would stop the car completely
-			if (speed - brakeAcc < 0) {
-				speed = 0;
-				brakeAcc = 0;
-			}
+			speed = subUntilZero(speed, brakeAcc);
 
 			// Apply forces with air resistance (drag)
-			speed = speed + getAirDrag() - brakeAcc;
+			speed = speed + getAirDrag();
 
 			// Round of the speed to not produce very very small decimal numbers
-			if (speed > 0 && Math.abs(speed) < 0.5) {
-				speed = 0;
-			} else if (speed < 0 && Math.abs(speed) < 0.5) {
+			if (speed != 0 && Math.abs(speed) < 0.1) {
 				speed = 0;
 			}
 
 			clutchPercent = 0;
 		} else {
 			double d = throttle * maxEngineRPM - engineRPM;
+			engineRPM = Math.abs((speed / driveWheelCircumference) * currentGearRatio * 60 * differentialRatio) * clutchPercent + (engineRPM + (d * 0.05)) * (1 - clutchPercent);
 
-			engineRPM = ((speed / driveWheelCircumference) * Math.abs(currentGearRatio) * 60 * differentialRatio) * clutchPercent + (engineRPM + (d * 0.05)) * (1 - clutchPercent);
-
-			// Get force of engine
+			// Get torque of engine
 			if (engineRPM < 800) {
 				engineRPM = 800 + Math.random() * 10;
 			}
 
 			engineAcc = getEngineTorque() * enginePower * throttle * clutchPercent * currentGearRatio * differentialRatio / driveWheelCircumference / mass;
-			brakeAcc = (brake * 200 / mass * Math.max(0.8, speed)) * 0.1;
+			brakeAcc = brake / 8;
 
 			// Check if the RPM limiter has to kick in
 			if (engineRPM > maxEngineRPM) {
-
-				if (speed < 0) {
-					engineAcc = engineAcc * 2;
-				} else {
-					engineAcc = -engineAcc * 2;
-				}
+				speed = subUntilZero(speed, engineAcc * 2);
 			}
 
-			// Check if in reverse gear to prevent wrong braking
-			if (speed < 0) {
-				if (speed - brakeAcc > 0) {
-					speed = 0;
-					brakeAcc = 0;
-				}
-			} else {
-				if (speed - brakeAcc < 0) {
-					speed = 0;
-					brakeAcc = 0;
-				}
-			}
+			speed = subUntilZero(speed, brakeAcc);
 
 			// Apply forces with air resistance (drag)
-			speed = speed + engineAcc + getAirDrag() - brake;
-
-			if (currentGear > 0 && speed < 0) {
-				clutchPercent = 0;
-				speed = 0;
-			}
+			speed = speed + engineAcc + getAirDrag();
 		}
 
-		G = Math.abs(speed - lastSpeed) / 0.08;
+		G = (2 * (speed - lastSpeed)) / (0.0025) / 32;
 
-		climbLoc = new Location(car.getWorld(), this.x + rotateScalar(1 + speed / 15, yaw).getX(), this.y, this.z + rotateScalar(1 + speed / 15, yaw).getZ());
+		climbLoc = new Location(car.getWorld(), this.x + rotateScalar(1 + speed / 5, yaw).getX(), this.y, this.z + rotateScalar(1 + speed / 5, yaw).getZ());
 
 		if (Cars.isClimbable(car.getWorld().getBlockAt(climbLoc).getType()) && Math.abs(speed) > 0.1) {
 			this.vy = this.vy + .08 + speed / 200;
@@ -299,24 +272,35 @@ public class Car {
 		soundLoc = new Location(car.getWorld(), this.x + this.vx, this.y + this.vy, this.z + this.vz);
 
 		if (Math.abs(lastEngineRPM - engineRPM) > 3 || (Math.floor(Math.random() * 3) == 0 && engineRPM > 1000)) {
-			soundLoc.getWorld().playSound(car.getLocation(), Sound.ENTITY_MINECART_RIDING, (float) (engineRPM / maxEngineRPM * 0.5) + 0.3f, (float) (engineRPM / maxEngineRPM));
+			soundLoc.getWorld().playSound(car.getLocation(), Sound.ENTITY_MINECART_RIDING, (float) ((engineRPM / maxEngineRPM * 0.5) + 0.3f) * Chars4Cars.volume, (float) (engineRPM / maxEngineRPM));
 		}
 		if (engineRPM > 0) {
-			soundLoc.getWorld().playSound(car.getLocation(), Sound.ENTITY_HORSE_JUMP, (float) (engineRPM / maxEngineRPM * 0.25) + 0.3f, (float) (engineRPM / maxEngineRPM));
+			soundLoc.getWorld().playSound(car.getLocation(), Sound.ENTITY_HORSE_JUMP, (float) ((engineRPM / maxEngineRPM * 0.25) + 0.3f) * Chars4Cars.volume, (float) (engineRPM / maxEngineRPM));
 		}
 
 		if (engineRPM > 3000 && enginePower >= 150) {
-			soundLoc.getWorld().playSound(car.getLocation(), Sound.ENTITY_FIREWORK_LAUNCH, (float) ((engineRPM / 3000) - 1f) * 0.45f, (float) (engineRPM / maxEngineRPM) * 2 - 1);
+			soundLoc.getWorld().playSound(car.getLocation(), Sound.ENTITY_FIREWORK_LAUNCH, (float) (((engineRPM / 3000) - 1f) * 0.45f) * Chars4Cars.volume, (float) (engineRPM / maxEngineRPM) * 2 - 1);
 		}
 
 		if (engineRPM > maxEngineRPM) {
-			soundLoc.getWorld().playSound(car.getLocation(), Sound.BLOCK_CHEST_OPEN, 1, 1);
+			soundLoc.getWorld().playSound(car.getLocation(), Sound.BLOCK_CHEST_OPEN, 1 * Chars4Cars.volume, 1);
+		}
+
+		if ((car.getWorld().getBlockAt(car.getLocation()).getType().equals(Material.WATER) || car.getWorld().getBlockAt(car.getLocation()).getType().equals(Material.STATIONARY_WATER)) && engineRunning) {
+			car.eject();
+			engineRunning = false;
+			engineRPM = 0;
+			soundLoc.getWorld().playSound(soundLoc, Sound.BLOCK_LAVA_EXTINGUISH, 1, 1);
+		}
+		if (Cars.isRail(car.getWorld().getBlockAt(car.getLocation()).getType())) {
+			car.getWorld().dropItemNaturally(car.getLocation(), CarGetter.createCar(this.name, this.enginePower, this.mass));
+			car.eject();
+			remove();
 		}
 
 		if (Chars4Cars.exhaustSmoke && engineRPM > 400) {
 			Vector flyVec = new Vector(rotateScalar(0.2, yaw + 180).getX(), 0.06 + Math.random() / 2, rotateScalar(0.2, yaw + 180).getZ());
 			Location exhaustLoc = new Location(car.getWorld(), this.x + rotateScalar(0.8, yaw + 180).getX(), this.y + 0.1, this.z + rotateScalar(0.8, yaw + 180).getZ());
-
 			ParticleEffect.SMOKE_NORMAL.display(flyVec, 0.4f, exhaustLoc, 20.0);
 		}
 
@@ -337,11 +321,13 @@ public class Car {
 				Score scCurrentGear = stats.getScore("Gear: " + currentGear);
 				Score scThrottle = stats.getScore("Throttle: " + (int) Math.floor(throttle * 100) + "%");
 				Score scBrake = stats.getScore("Brake: " + (int) Math.floor(brake * 100) + "%");
+				Score scG = stats.getScore("G Force: " + (float) Math.floor(G * 100) / 100 + "*32m/s²");
 				scSpeed.setScore(0);
 				scEngineRPM.setScore(1);
 				scCurrentGear.setScore(2);
 				scThrottle.setScore(3);
 				scBrake.setScore(4);
+				scG.setScore(5);
 
 				passenger.setScoreboard(sb);
 			}
@@ -440,12 +426,15 @@ public class Car {
 	}
 
 	/**
-	 * Locks car
+	 * Locks the car
 	 */
 	public void lock() {
 		this.isLocked = true;
 	}
 
+	/**
+	 * Unlocks the car
+	 */
 	public void unLock() {
 		isLocked = false;
 	}
@@ -476,8 +465,13 @@ public class Car {
 	 * Removes the car
 	 */
 	public void remove() {
-		car.remove();
 		car.setDamage(-1);
+		car.remove();
+		try {
+			this.finalize();
+			Cars.CarMap.remove(getCockpitID());
+		} catch (Throwable e) {
+		}
 	}
 
 	/**
@@ -498,5 +492,34 @@ public class Car {
 	 */
 	public void setForw(float forw) {
 		this.forw = forw;
+	}
+
+	/**
+	 * Subtracts the amount of a number by b A - B When A is greater than 0, and
+	 * B greater than A, returns 0 When A is smaller than 0, and B greater than
+	 * B, returns 0
+	 * 
+	 * @param a
+	 * @param b
+	 */
+	public double subUntilZero(double a, double b) {
+		if (b < 0) {
+			return 0;
+		}
+		if (a < 0) {
+			if (a + b > 0) {
+				return 0;
+			} else {
+				return a + b;
+			}
+		} else if (a > 0) {
+			if (a - b < 0) {
+				return 0;
+			} else {
+				return a - b;
+			}
+
+		}
+		return 0;
 	}
 }

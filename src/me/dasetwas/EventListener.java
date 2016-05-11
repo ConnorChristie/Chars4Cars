@@ -15,12 +15,15 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.vehicle.VehicleDamageEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.event.vehicle.VehicleEntityCollisionEvent;
 import org.bukkit.event.vehicle.VehicleExitEvent;
 import org.bukkit.inventory.ItemStack;
+
+import net.md_5.bungee.api.ChatColor;
 
 public class EventListener implements Listener {
 
@@ -65,6 +68,13 @@ public class EventListener implements Listener {
 		}
 	}
 
+	@EventHandler
+	public void emtpyCar(PlayerQuitEvent ple) {
+		if (ple.getPlayer().isInsideVehicle() && Cars.isCar(ple.getPlayer().getVehicle().getUniqueId())) {
+			ple.getPlayer().leaveVehicle();
+		}
+	}
+
 	@EventHandler(priority = EventPriority.HIGH)
 	public void use(PlayerInteractEvent pie) {
 
@@ -88,30 +98,63 @@ public class EventListener implements Listener {
 		}
 
 		if ((user.getInventory().getItemInMainHand().getType()) == Material.MINECART) {
-			if (creativePlaceCooldown == 1) {
-				creativePlaceCooldown = 0;
-			} else {
-				creativePlaceCooldown = 1;
-			}
 			// get Item in hand to later test if it is a minecart with lores
 			ItemStack car = user.getInventory().getItemInMainHand();
 
-			if (car.getItemMeta().getLore().size() == 2 && (pie.getAction().equals(Action.RIGHT_CLICK_BLOCK)) && !(user.getGameMode() == GameMode.CREATIVE && creativePlaceCooldown == 0)) {
-				List<String> lore = car.getItemMeta().getLore();
-				// Use the lore to create a Car object.
-				Car newCar = new Car(user.getLocation().getYaw(), pie.getClickedBlock().getLocation(), user.getUniqueId(), Integer.parseInt(lore.get(0)), Integer.parseInt(lore.get(1)), car.getItemMeta().getDisplayName());
-
-				if (!(user.getGameMode() == GameMode.CREATIVE)) {
-					user.getInventory().setItemInMainHand(new ItemStack(Material.AIR, 0));
+			if (pie.getAction().equals(Action.RIGHT_CLICK_AIR) || pie.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
+				if (car.hasItemMeta()) {
+					try {
+						if (car.getItemMeta().getDisplayName().substring(0, 16).equals("§aChars4Cars Car")) {
+							try {
+								String[] args = car.getItemMeta().getDisplayName().split(":");
+								user.getInventory().setItemInMainHand(CarGetter.createCar(args[1], Integer.parseInt(args[2]), Integer.parseInt(args[3])));
+							} catch (Exception e) {
+								e.printStackTrace();
+								pie.getPlayer().sendMessage(Chars4Cars.prefix + Chars4Cars.couldNotConvert);
+							}
+						}
+					} catch (Exception e) {
+					}
 				}
+			}
 
-				// get UUID of car entity to save it in the global HashMap
-				// of cars
-				UUID uuid = newCar.getCockpitID();
-				Cars.CarMap.put(uuid, newCar);
+			if (car.hasItemMeta()) {
+				if (car.getItemMeta().hasLore()) {
+					// Avoid double placement
+
+					if (creativePlaceCooldown == 1) {
+						creativePlaceCooldown = 0;
+					} else {
+						creativePlaceCooldown = 1;
+					}
+					// Avoid placement in blacklisted worldsc
+					if (Chars4Cars.limitToWorlds && !Chars4Cars.activeWorlds.contains(pie.getPlayer().getLocation().getWorld().getName())) {
+						return;
+					}
+
+					if (car.getItemMeta().getLore().size() == 3 && (pie.getAction().equals(Action.RIGHT_CLICK_BLOCK)) && !(user.getGameMode() == GameMode.CREATIVE && creativePlaceCooldown == 0) && car.getItemMeta().getLore().get(0).equalsIgnoreCase(ChatColor.DARK_GRAY + "Chars4Cars Car")) {
+						if (!Cars.isRail(pie.getClickedBlock().getType())) {
+							List<String> lore = car.getItemMeta().getLore();
+							// Use the lore to create a Car object.
+							Car newCar = new Car(user.getLocation().getYaw(), pie.getClickedBlock().getLocation(), user.getUniqueId(), Integer.parseInt(ChatColor.stripColor(lore.get(1))), Integer.parseInt(ChatColor.stripColor(lore.get(2))), car.getItemMeta().getDisplayName());
+
+							if (!(user.getGameMode() == GameMode.CREATIVE)) {
+								user.getInventory().setItemInMainHand(new ItemStack(Material.AIR, 0));
+							}
+
+							// get UUID of car entity to save it in the global
+							// HashMap
+							// of cars
+							UUID uuid = newCar.getCockpitID();
+							Cars.CarMap.put(uuid, newCar);
+						} else {
+							pie.getPlayer().sendMessage(Chars4Cars.prefix + Chars4Cars.noPlaceRails);
+							pie.setCancelled(true);
+						}
+					}
+				}
 			}
 		}
-
 	}
 
 	@EventHandler
