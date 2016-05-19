@@ -8,15 +8,22 @@ commands:
    chars4cars:
       description: Shows info about the Plugin.
       aliases: [c4c, charsforcars]
-      usage: /chars4cars [reload | info]
+      usage: /chars4cars <reload> | <info> | <perms>
       permission: c4c.info
       permission-message: You don't have the permission to use that command!
    givecar:
       description: Gives you a car.
-      usage: /givecar <Name> <Power> <Mass>
+      usage: /givecar <Name> <Power> <Mass> <Fuel> [Player]
       permission: c4c.givecar
       permission-message: You don't have the permission to use that command!
-
+   killcars:
+      description: Kills specified cars.
+      usage: /killcars <all> | <empty> | <soft>
+      permission: c4c.killcars
+      permission-message: You don't have the permission to use that command!
+   getitemname:
+      description: Gets the name of the item that can be used in the config.
+      usage: /getitemname
   
 permissions:
    c4c.*:
@@ -27,10 +34,12 @@ permissions:
          c4c.owneroverride: true
          c4c.givecar: true
    c4c.dropoverride:
-      description: Allows players in Gamemode Creative to get Car drops
+      description: Allows players in Gamemode Creative to get Car drops.
    c4c.givecar:
-      description: Allows players to give them cars using /givecar
+      description: Allows players to give them cars using /givecar.
+   c4c.owneroverride:
+      description: Allows players to destroy cars not owned by them.
 
-softdepend: [PermissionsEX]
+softdepend: [Vault]
 depend: [ProtocolLib]
    

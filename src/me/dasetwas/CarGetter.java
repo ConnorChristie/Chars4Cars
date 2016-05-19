@@ -10,6 +10,11 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import net.md_5.bungee.api.ChatColor;
 
+/**
+ * 
+ * @author DasEtwas
+ *
+ */
 public class CarGetter {
 
 	/**
@@ -24,8 +29,8 @@ public class CarGetter {
 	 * @param carMass
 	 *            Car mass
 	 */
-	public static void getCar(Player cmdSender, String name, int enginePower, int carMass) {
-		cmdSender.getInventory().addItem(createCar(name, enginePower, carMass));
+	public static void getCar(Player cmdSender, String name, int enginePower, int carMass, double fuel) {
+		cmdSender.getInventory().addItem(createCar(name, enginePower, carMass, fuel));
 	}
 
 	/**
@@ -39,7 +44,7 @@ public class CarGetter {
 	 *            Car mass
 	 * @return Car ItemStack
 	 */
-	public static ItemStack createCar(String name, int enginePower, int carMass) {
+	public static ItemStack createCar(String name, int enginePower, int carMass, double fuel) {
 
 		ItemStack car = new ItemStack(Material.MINECART);
 		ItemMeta carMeta = car.getItemMeta();
@@ -48,6 +53,7 @@ public class CarGetter {
 		loreList.add(ChatColor.DARK_GRAY + "Chars4Cars Car");
 		loreList.add(ChatColor.GREEN + Integer.toString(enginePower));
 		loreList.add(ChatColor.GREEN + Integer.toString(carMass));
+		loreList.add(ChatColor.GREEN + Double.toString(fuel));
 		carMeta.setLore(loreList);
 		car.setItemMeta(carMeta);
 		return car;
