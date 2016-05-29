@@ -6,9 +6,19 @@ import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.event.Event;
 import org.bukkit.inventory.ItemStack;
+
+import me.dasetwas.event.CarEvent;
+import me.dasetwas.event.CarsUpdateTickEvent;
 import net.md_5.bungee.api.ChatColor;
 
+/**
+ * 
+ *
+ * @author DasEtwas
+ *
+ */
 public class Cars {
 
 	public static HashMap<Integer, UUID> disposal = new HashMap<Integer, UUID>();
@@ -50,9 +60,13 @@ public class Cars {
 	 * Cylces through all cars in the HashMap and calls updateCar() on them
 	 */
 	public static void cycleCars() {
+		int i = 0;
 		for (UUID key : CarMap.keySet()) {
 			CarMap.get(key).updateCar();
+			i++;
 		}
+
+		Bukkit.getServer().getPluginManager().callEvent(new CarsUpdateTickEvent(i));
 	}
 
 	/**
@@ -61,7 +75,7 @@ public class Cars {
 	 */
 	public static double[] getEngineTorques() {
 		// 1 2 3 4 5 6 7 8 9 10
-		double[] engineTorques = { 0.35, 0.39, 0.45, 0.56, 0.67, 0.89, 1.00, 0.95, 0.46, 0.35 };
+		double[] engineTorques = { 0.35, 0.39, 0.45, 0.56, 0.67, 0.89, 1.00, 0.95, 0.76, 0.65 };
 		return engineTorques;
 	}
 
@@ -77,8 +91,6 @@ public class Cars {
 	 */
 	public static boolean isClimbable(Material type) {
 		if (type.equals(Material.STONE_SLAB2)) {
-			return true;
-		} else if (type.equals(Material.PURPUR_SLAB)) {
 			return true;
 		} else if (type.equals(Material.STEP)) {
 			return true;
@@ -98,8 +110,6 @@ public class Cars {
 			return true;
 		} else if (type.equals(Material.NETHER_BRICK_STAIRS)) {
 			return true;
-		} else if (type.equals(Material.PURPUR_STAIRS)) {
-			return true;
 		} else if (type.equals(Material.QUARTZ_STAIRS)) {
 			return true;
 		} else if (type.equals(Material.RED_SANDSTONE_STAIRS)) {
@@ -116,6 +126,11 @@ public class Cars {
 			return true;
 		} else if (type.equals(Material.DAYLIGHT_DETECTOR) || type.equals(Material.DAYLIGHT_DETECTOR_INVERTED)) {
 			return true;
+		}
+		if (Material.getMaterial("PURPUR_SLAB") != null) {
+			if (type.equals(Material.valueOf("PURPUR_SLAB")) || type.equals(Material.valueOf("PURPUR_STAIRS"))) {
+				return true;
+			}
 		}
 		return false;
 	}
@@ -134,16 +149,17 @@ public class Cars {
 	public static boolean isSlab(Material type) {
 		if (type.equals(Material.STONE_SLAB2)) {
 			return true;
-		} else if (type.equals(Material.PURPUR_SLAB)) {
-			return true;
-		} else if (type.equals(Material.STEP)) {
-			return true;
 		} else if (type.equals(Material.WOOD_STEP)) {
 			return true;
 		} else if (type.equals(Material.STEP)) {
 			return true;
 		} else if (type.equals(Material.DAYLIGHT_DETECTOR) || type.equals(Material.DAYLIGHT_DETECTOR_INVERTED)) {
 			return true;
+		}
+		if (Material.getMaterial("PURPUR_SLAB") != null) {
+			if (type.equals(Material.valueOf("PURPUR_SLAB"))) {
+				return true;
+			}
 		}
 		return false;
 	}
@@ -195,5 +211,9 @@ public class Cars {
 			CarMap.remove(disposal.get(i));
 		}
 		disposal.clear();
+	}
+
+	public static void dropCar(Car car, Location loc) {
+		loc.getWorld().dropItemNaturally(loc, CarGetter.createCar(car.name, car.enginePower, car.mass, car.fuel));
 	}
 }
