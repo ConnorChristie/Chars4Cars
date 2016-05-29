@@ -6,10 +6,8 @@ import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.event.Event;
 import org.bukkit.inventory.ItemStack;
 
-import me.dasetwas.event.CarEvent;
 import me.dasetwas.event.CarsUpdateTickEvent;
 import net.md_5.bungee.api.ChatColor;
 

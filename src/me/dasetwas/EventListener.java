@@ -8,7 +8,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.World;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Minecart;
@@ -67,15 +66,6 @@ public class EventListener implements Listener {
 
 				if (ownerSurvival || ownerCreativeButHasPermission) {
 					Car theCar = Cars.CarMap.get(vde.getVehicle().getUniqueId());
-
-					int engineStrength = theCar.enginePower;
-					int carMass = theCar.mass;
-					double fuel = theCar.fuel;
-					String name = theCar.name;
-
-					World world = vde.getVehicle().getLocation().getWorld();
-
-					ItemStack carItem = CarGetter.createCar(name, engineStrength, carMass, fuel);
 
 					Cars.dropCar(theCar, theCar.getLocation());
 

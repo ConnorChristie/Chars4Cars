@@ -1,12 +1,9 @@
 package me.dasetwas;
 
 import java.util.UUID;
-import java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy;
-
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.Sound;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Minecart;
@@ -58,7 +55,7 @@ public class Car {
 	double engineAcc;
 	boolean engineRunning = true;
 	double clutchPercent;
-	double speed;
+	double speed, lastSpeed;
 	int currentGear = 0;
 	int enginePower; // Newton-meter
 	double driveWheelRadius = 0.42;
@@ -69,17 +66,14 @@ public class Car {
 	static char[] gearNames = Cars.getGearNames();
 	double differentialRatio = Chars4Cars.differentialRatio;
 	double currentGearRatio;
-	Material currentGround;
 	int i;
 	boolean isLocked;
 	double fuel;
 	double brakeAcc;
-	float steeringDifference;
-	double lastSpeed;
-	double G;
+	double G, lastG;
 	double hitBoxX;
 	double hitBoxZ;
-	double rSpeed;
+	double rSpeed, lastRSpeed;
 
 	/**
 	 * Car constructor
@@ -377,7 +371,7 @@ public class Car {
 		}
 		// ---
 
-		G = (engineAcc - getAirDrag() - brakeAcc) / 16 / (0.05) * Chars4Cars.updateDelta;
+		G = Math.abs((rSpeed - lastRSpeed) / 16 / (0.05) * Chars4Cars.updateDelta);
 
 		// Some code by storm345 modified to appeal more to me :)
 		BlockFace face = getFace(this.yaw);
@@ -412,7 +406,7 @@ public class Car {
 				hitBoxX = this.vx;
 		}
 
-		climbLoc = car.getLocation().add(this.vx * 2 + hitBoxX, this.vy + 0.04, this.vz * 2 + hitBoxZ);
+		climbLoc = car.getLocation().add(this.vx * 2 + hitBoxX, -this.vy, this.vz * 2 + hitBoxZ);
 		Location overLoc = new Location(climbLoc.getWorld(), climbLoc.getX(), climbLoc.getY() + 1, climbLoc.getZ());
 
 		if (!Chars4Cars.climbBlocks) {
@@ -514,7 +508,7 @@ public class Car {
 				Score scCurrentGear = stats.getScore("Gear: " + gearNames[currentGear + 1]);
 				Score scThrottle = stats.getScore("Throttle: " + (int) Math.floor(throttle * 100) + "%");
 				Score scBrake = stats.getScore("Brake: " + (int) Math.floor(brake * 100) + "%");
-				Score scG = stats.getScore("G Force: " + (float) Math.floor(G * 100) / 100 + "*32m/s²");
+				Score scG = stats.getScore("G Force: " + (float) Math.floor((lastG + G) / 2 * 100) / 100 + "*32m/s²");
 
 				if (Chars4Cars.fuel) {
 					Score scFuel = stats.getScore("Fuel: " + Math.floor(fuel * 100) / 100);
@@ -559,6 +553,9 @@ public class Car {
 		lastEngineRPM = engineRPM;
 		// to know acceleration
 		lastSpeed = speed;
+		lastRSpeed = rSpeed;
+		lastG = G;
+
 		car.setCustomName("§aChars4Cars Car:" + name + ":" + enginePower + ":" + mass + ":" + owner + ":" + fuel);
 		// *=*=*=*
 
