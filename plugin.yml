@@ -27,8 +27,9 @@ commands:
   
 permissions:
    c4c.*:
-      description: Grants acces to all actions and commands of Chars4Cars
+      description: Grants access to all actions and commands of Chars4Cars
       children:
+         c4c.createfuelstation: true
          c4c.dropoverride: true
          c4c.info: true
          c4c.owneroverride: true
@@ -39,6 +40,10 @@ permissions:
       description: Allows players to give them cars using /givecar.
    c4c.owneroverride:
       description: Allows players to destroy cars not owned by them.
+   c4c.info:
+      description: Allows players to use the /c4c [no arguments] command showing command help.
+   c4c.createfuelstation:
+      description: Allows the player to create Fuel Stations.
 
 softdepend: [Vault]
 depend: [ProtocolLib]

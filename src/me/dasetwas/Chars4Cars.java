@@ -43,6 +43,7 @@ public class Chars4Cars extends JavaPlugin {
 	public static boolean carLocking;
 	public static String yourCarStolen;
 	public static String notOnline;
+	public static String noFuelBuySelf;
 	public static String prefix = ChatColor.translateAlternateColorCodes(altColorChar, "&7[&aC&84&aC&7]&r ");
 	public static int ppp = 0;
 	public static String yourCarDamaged;
@@ -72,6 +73,9 @@ public class Chars4Cars extends JavaPlugin {
 	public static boolean scoreBoard;
 	public static int MCVersion;
 
+	public static double slabJumpVel = 0.3;
+	public static double stairJumpVel = 0.45;
+
 	@Override
 	public void onEnable() {
 		try {
@@ -80,7 +84,7 @@ public class Chars4Cars extends JavaPlugin {
 			MCVersion = 0;
 		}
 		Compat.setup();
-		
+
 		Bukkit.getLogger().info("Found minecraft version: " + MCVersion);
 
 		if (!setupProtocolLib()) {
@@ -334,6 +338,7 @@ public class Chars4Cars extends JavaPlugin {
 		getConfig().addDefault("warn.noEnterCarLocked", "&8That car is locked.");
 		getConfig().addDefault("warn.noPlaceRails", "&8You can't place a car on rails.");
 		getConfig().addDefault("warn.invalidFuelStation", "&7That's not a valid Fuel Station.");
+		getConfig().addDefault("warn.noFuelBuySelf", "&8You can't buy fuel from yourself!");
 		getConfig().addDefault("info.owner", "&8Owner: &r");
 		getConfig().addDefault("info.givenCar", "&8You have been given a car.");
 		getConfig().addDefault("info.carLocked", "&8Your car is now locked.");
@@ -343,6 +348,7 @@ public class Chars4Cars extends JavaPlugin {
 		getConfig().addDefault("info.commandSuccess", "&8Command executed successfully.");
 		getConfig().addDefault("info.boughtFuel", "&8You bought &f%LT%&8L of fuel for &f%LP%&7%CS%&8 per Liter.");
 		getConfig().addDefault("error.couldNotGiveCar", "&4Could not give a car. &c(See console output)");
+
 		getConfig().addDefault("game.limitToWorlds.enable", false);
 		List<String> wl = new ArrayList<String>();
 		wl.add("world");
@@ -380,6 +386,7 @@ public class Chars4Cars extends JavaPlugin {
 		noEnterCarLocked = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("warn.noEnterCarLocked"));
 		noPlaceRails = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("warn.noPlaceRails"));
 		invalidFuelStation = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("warn.invalidFuelStation"));
+		noFuelBuySelf = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("warn.noFuelBuySelf"));
 		owner = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("info.owner"));
 		givenCar = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("info.givenCar"));
 		carLocked = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("info.carLocked"));
@@ -389,6 +396,7 @@ public class Chars4Cars extends JavaPlugin {
 		commandSuccess = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("info.commandSuccess"));
 		boughtFuel = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("info.boughtFuel"));
 		couldNotGiveCar = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("error.couldNotGiveCar"));
+
 		climbBlocks = getConfig().getBoolean("game.climbBlocks.enable");
 		climbBlocksList = (List<String>) getConfig().getList("climbBlocks.climb");
 		defaultPower = getConfig().getInt("game.defaultPower");

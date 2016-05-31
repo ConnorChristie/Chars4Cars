@@ -148,6 +148,11 @@ public class EventListener implements Listener {
 							float price = Float.parseFloat(sign.getLine(2));
 							float oneprice = price / quantity;
 							Player owner = Bukkit.getServer().getPlayer(sign.getLine(3));
+							
+							if (owner.equals(user)) {
+								user.sendMessage(Chars4Cars.prefix + Chars4Cars.noFuelBuySelf);
+								return;
+							}
 
 							if (Cars.CarMap.get(pie.getPlayer().getVehicle().getUniqueId()).fuel + quantity > Chars4Cars.maxFuel) {
 								double d = Chars4Cars.maxFuel - Cars.CarMap.get(pie.getPlayer().getVehicle().getUniqueId()).fuel;
@@ -353,6 +358,7 @@ public class EventListener implements Listener {
 		if (!vee.isCancelled()) {
 			if (Cars.isCar(vee.getVehicle().getUniqueId())) {
 				((Player) vee.getExited()).setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
+				((Player) vee.getExited()).setVelocity(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getVelocity());
 				if (((Player) vee.getExited()).getUniqueId().equals(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner())) {
 					if (Chars4Cars.carLocking) {
 						Cars.CarMap.get(vee.getVehicle().getUniqueId()).unLock();

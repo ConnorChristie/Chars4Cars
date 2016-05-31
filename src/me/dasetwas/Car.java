@@ -31,8 +31,7 @@ public class Car {
 	UUID cockpitID;
 	Minecart car;
 	String name;
-	Location soundLoc;
-	Location climbLoc;
+	Location climbLoc, overLoc, soundLoc;
 	double x, y, z;
 	float yaw;
 	double vx, vz, vy;
@@ -406,48 +405,25 @@ public class Car {
 				hitBoxX = this.vx;
 		}
 
-		climbLoc = car.getLocation().add(this.vx * 2 + hitBoxX, -this.vy, this.vz * 2 + hitBoxZ);
-		Location overLoc = new Location(climbLoc.getWorld(), climbLoc.getX(), climbLoc.getY() + 1, climbLoc.getZ());
+		climbLoc = car.getLocation().add(this.vx * 2.3 + hitBoxX, Math.max(0.1f, this.vy * -1), this.vz * 2.3 + hitBoxZ);
+		// climbLoc.add(0 ,1 ,0) will change climbloc :P
+		overLoc = new Location(climbLoc.getWorld(), climbLoc.getX(), climbLoc.getY() + 1, climbLoc.getZ());
 
 		if (!Chars4Cars.climbBlocks) {
-			// Check if to climb from a slab to a block
-			if (car.getLocation().add(0, -0.5, 0).getBlock().getType().isSolid() && Math.abs(speed) > 0.01 && (this.y - ((int) this.y)) > 0.48) {
-				if (!Cars.isSlab(climbLoc.getBlock().getType())) {
-					if (!overLoc.getBlock().getType().isSolid()) {
-						if (!(climbLoc.getBlock().getType().equals(Material.SNOW))) {
-							this.vy = 0.3;
-						}
+			// If car would be at climbLoc, if it would collide there
+			if (AABB.hasClimbable(climbLoc)) {
+				// If car is NOT on a slab already
+				if ((this.y - ((int) this.y)) > Math.min(0.47, Chars4Cars.slabJumpVel)) {
+					if (!Cars.isSlab(climbLoc.getBlock().getType()) && Math.abs(speed) > 0.3 && !(AABB.hasSolid(overLoc))) {
+						addJumpVel(Chars4Cars.slabJumpVel);
+					}
+				} else {
+					if (AABB.hasSlab(climbLoc) && !AABB.hasSolid(overLoc)) {
+						addJumpVel(Chars4Cars.slabJumpVel);
+					} else if (!AABB.hasSolid(overLoc)) {
+						addJumpVel(Chars4Cars.stairJumpVel);
 					}
 				}
-			}
-			// Is in front of climbable block
-			if (Cars.isClimbable(climbLoc.getBlock().getType()) && Math.abs(speed) > 0.1) {
-				// Is on slab
-				if (!overLoc.getBlock().getType().isSolid()) {
-					if (Cars.isSlab(climbLoc.getBlock().getType())) {
-						if ((this.y - ((int) this.y)) < 0.3) {
-							this.vy = 0.3;
-						}
-					} else {
-
-						this.vy = 0.45;
-					}
-				}
-			}
-		} else {
-			if (Chars4Cars.climbBlocksList.contains(climbLoc.getBlock().getType().toString())) {
-				if (!overLoc.getBlock().getType().isSolid()) {
-					if (Cars.isSlab(climbLoc.getBlock().getType())) {
-						this.vy = 0.3;
-					} else {
-						this.vy = 0.45;
-					}
-				}
-			}
-		}
-		if (climbLoc.add(0, 0.95, 0).getBlock().getType().equals(Material.CARPET)) {
-			if (!overLoc.getBlock().getType().isSolid()) {
-				this.vy = 0.15;
 			}
 		}
 
@@ -790,5 +766,9 @@ public class Car {
 
 	public void climb() {
 
+	}
+
+	public void addJumpVel(double vel) {
+		this.vy = vel;
 	}
 }
