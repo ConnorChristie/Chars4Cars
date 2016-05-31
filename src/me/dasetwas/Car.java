@@ -463,7 +463,7 @@ public class Car {
 
 		if (Chars4Cars.exhaustSmoke && engineRPM > 400) {
 			Vector flyVec = new Vector(rotateScalar(0.2, yaw + 180).getX(), 0.06 + Math.random() / 2, rotateScalar(0.2, yaw + 180).getZ());
-			Location exhaustLoc = new Location(car.getWorld(), this.x + rotateScalar(0.8, yaw + 180).getX(), this.y + 0.1, this.z + rotateScalar(0.8, yaw + 180).getZ());
+			Location exhaustLoc = new Location(car.getWorld(), this.x + rotateScalar(0.8, yaw + 180).getX() - this.vx * 1.6, this.y + 0.1, this.z + rotateScalar(0.8, yaw + 180).getZ() - this.vz * 1.6);
 			ParticleEffect.SMOKE_NORMAL.display(flyVec, 0.4f, exhaustLoc, 20.0);
 		}
 

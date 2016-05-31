@@ -20,7 +20,6 @@ public class AABB {
 			xx = x + ((i % 2) * 2 - 1) * carWidth;
 			zz = z + ((int) (i / 2) * 2 - 1) * carWidth;
 			yy = y;
-			ParticleEffect.CRIT.display(new Vector(0d, 1d, 0d), 0.1f, new Location(loc.getWorld(), xx, yy + 0.25, zz), 3);
 			types[i] = new Location(loc.getWorld(), (int) (xx), (int) (yy), (int) (zz)).getBlock().getType();
 		}
 

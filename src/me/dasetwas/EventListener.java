@@ -127,6 +127,7 @@ public class EventListener implements Listener {
 	public void createFuelStation(SignChangeEvent sce) {
 		if (sce.getLine(0).equals("[Fuel Station]")) {
 			if (!sce.getPlayer().hasPermission("c4c.createfuelstation")) {
+				sce.getPlayer().sendMessage(Chars4Cars.noPerm);
 				sce.setCancelled(true);
 				sce.setLine(0, "");
 			}
@@ -148,7 +149,7 @@ public class EventListener implements Listener {
 							float price = Float.parseFloat(sign.getLine(2));
 							float oneprice = price / quantity;
 							Player owner = Bukkit.getServer().getPlayer(sign.getLine(3));
-							
+
 							if (owner.equals(user)) {
 								user.sendMessage(Chars4Cars.prefix + Chars4Cars.noFuelBuySelf);
 								return;
@@ -211,56 +212,60 @@ public class EventListener implements Listener {
 		}
 
 		if (Compat.getItemInMainHand((user.getInventory())).getType().equals(Material.MINECART)) {
-			// get Item in hand to later test if it is a minecart with
-			// lores
-			ItemStack car = Compat.getItemInMainHand(user.getInventory());
+			if (user.hasPermission("c4c.placecar")) {
+				// get Item in hand to later test if it is a minecart with
+				// lores
+				ItemStack car = Compat.getItemInMainHand(user.getInventory());
 
-			if (car.hasItemMeta()) {
-				if (car.getItemMeta().hasLore()) {
-					// Avoid double placement
+				if (car.hasItemMeta()) {
+					if (car.getItemMeta().hasLore()) {
+						// Avoid double placement
 
-					if (creativePlaceCooldown == 1) {
-						creativePlaceCooldown = 0;
-					} else {
-						creativePlaceCooldown = 1;
-					}
-					// Avoid placement in blacklisted worlds
-					if (Chars4Cars.limitToWorlds && !Chars4Cars.activeWorlds.contains(pie.getPlayer().getLocation().getWorld().getName())) {
-						return;
-					}
-
-					if (car.getItemMeta().getLore().size() == 4 && (pie.getAction().equals(Action.RIGHT_CLICK_BLOCK)) && !(user.getGameMode() == GameMode.CREATIVE && creativePlaceCooldown == 0) && car.getItemMeta().getLore().get(0).equalsIgnoreCase(ChatColor.DARK_GRAY + "Chars4Cars Car")) {
-						if (!Cars.isRail(pie.getClickedBlock().getType()) && !pie.getClickedBlock().getLocation().add(0, 1, 0).getBlock().getType().isSolid()) {
-							List<String> lore = car.getItemMeta().getLore();
-							// Use the lore to create a Car object.
-							Car newCar = new Car(user.getLocation().getYaw(), pie.getClickedBlock().getLocation().add(0.5, 1, 0.5), user.getUniqueId(), Integer.parseInt(ChatColor.stripColor(lore.get(1))), Integer.parseInt(ChatColor.stripColor(lore.get(2))), car.getItemMeta().getDisplayName(), Double.parseDouble(ChatColor.stripColor(lore.get(3))));
-
-							if (!(user.getGameMode() == GameMode.CREATIVE)) {
-								Compat.setItemInMainHand(user.getInventory(), new ItemStack(Material.AIR, 0));
-							}
-
-							CarSpawnEvent cse = new CarSpawnEvent(newCar, pie.getClickedBlock().getLocation().add(0.5, 1, 0.5), false, pie.getPlayer());
-							Bukkit.getServer().getPluginManager().callEvent(cse);
-
-							if (cse.isCancelled()) {
-								newCar.remove();
-								pie.setCancelled(true);
-								return;
-							}
-
-							// get UUID of car entity to save it in the
-							// global
-							// HashMap
-							// of cars
-							UUID uuid = newCar.getCockpitID();
-							Cars.CarMap.put(uuid, newCar);
+						if (creativePlaceCooldown == 1) {
+							creativePlaceCooldown = 0;
 						} else {
-							pie.getPlayer().sendMessage(Chars4Cars.prefix + Chars4Cars.noPlaceRails);
-							pie.setCancelled(true);
+							creativePlaceCooldown = 1;
+						}
+						// Avoid placement in blacklisted worlds
+						if (Chars4Cars.limitToWorlds && !Chars4Cars.activeWorlds.contains(pie.getPlayer().getLocation().getWorld().getName())) {
+							return;
+						}
+
+						if (car.getItemMeta().getLore().size() == 4 && (pie.getAction().equals(Action.RIGHT_CLICK_BLOCK)) && !(user.getGameMode() == GameMode.CREATIVE && creativePlaceCooldown == 0) && car.getItemMeta().getLore().get(0).equalsIgnoreCase(ChatColor.DARK_GRAY + "Chars4Cars Car")) {
+							if (!Cars.isRail(pie.getClickedBlock().getType()) && !pie.getClickedBlock().getLocation().add(0, 1, 0).getBlock().getType().isSolid()) {
+								List<String> lore = car.getItemMeta().getLore();
+								// Use the lore to create a Car object.
+								Car newCar = new Car(user.getLocation().getYaw(), pie.getClickedBlock().getLocation().add(0.5, 1, 0.5), user.getUniqueId(), Integer.parseInt(ChatColor.stripColor(lore.get(1))), Integer.parseInt(ChatColor.stripColor(lore.get(2))), car.getItemMeta().getDisplayName(), Double.parseDouble(ChatColor.stripColor(lore.get(3))));
+
+								if (!(user.getGameMode() == GameMode.CREATIVE)) {
+									Compat.setItemInMainHand(user.getInventory(), new ItemStack(Material.AIR, 0));
+								}
+
+								CarSpawnEvent cse = new CarSpawnEvent(newCar, pie.getClickedBlock().getLocation().add(0.5, 1, 0.5), false, pie.getPlayer());
+								Bukkit.getServer().getPluginManager().callEvent(cse);
+
+								if (cse.isCancelled()) {
+									newCar.remove();
+									pie.setCancelled(true);
+									return;
+								}
+
+								// get UUID of car entity to save it in the
+								// global
+								// HashMap
+								// of cars
+								UUID uuid = newCar.getCockpitID();
+								Cars.CarMap.put(uuid, newCar);
+							} else {
+								pie.getPlayer().sendMessage(Chars4Cars.prefix + Chars4Cars.noPlaceRails);
+								pie.setCancelled(true);
+							}
 						}
 					}
 				}
 			}
+		} else {
+			user.sendMessage(Chars4Cars.noPerm);
 		}
 	}
 
@@ -406,52 +411,56 @@ public class EventListener implements Listener {
 	public void carEnter(VehicleEnterEvent vee) {
 		if (!vee.isCancelled()) {
 			if (vee.getEntered() instanceof Player) {
-				if (Cars.isCar(vee.getVehicle().getUniqueId())) {
+				if (vee.getEntered().hasPermission("c4c.usecar")) {
+					if (Cars.isCar(vee.getVehicle().getUniqueId())) {
 
-					if (Chars4Cars.carLocking) {
-						if (!((Player) vee.getEntered()).getUniqueId().equals(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner())) {
+						if (Chars4Cars.carLocking) {
+							if (!((Player) vee.getEntered()).getUniqueId().equals(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner())) {
 
-							if (Cars.CarMap.get(vee.getVehicle().getUniqueId()).isLocked()) {
-								((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.noEnterCarLocked);
-								vee.setCancelled(true);
-							} else {
-								((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.doNotOwnCar);
-								Bukkit.getPlayer(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner()).sendMessage(Chars4Cars.prefix + Chars4Cars.yourCarStolen);
-							}
-						}
-					} else {
-						if (!((Player) vee.getEntered()).getUniqueId().equals(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner())) {
-							((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.doNotOwnCar);
-							vee.setCancelled(true);
-						}
-					}
-
-				} else {
-					if (vee.getVehicle().getCustomName().substring(0, 16).equals("§aChars4Cars Car") && vee.getVehicle().getType().equals(EntityType.MINECART)) {
-						try {
-							String[] args = vee.getVehicle().getCustomName().split(":");
-							Car theCar = new Car(UUID.fromString(args[4]), Integer.parseInt(args[2]), Integer.parseInt(args[3]), args[1], (Minecart) vee.getVehicle(), Double.parseDouble(args[5]));
-
-							CarSpawnEvent cse = new CarSpawnEvent(theCar, theCar.getLocation(), true, (Player) vee.getEntered());
-							Bukkit.getServer().getPluginManager().callEvent(cse);
-
-							if (cse.isCancelled()) {
-								theCar.remove();
-								return;
-							}
-
-							Cars.CarMap.put(vee.getVehicle().getUniqueId(), theCar);
-							if (!vee.getEntered().getUniqueId().equals(UUID.fromString(args[4]))) {
-								if (Chars4Cars.carLocking) {
+								if (Cars.CarMap.get(vee.getVehicle().getUniqueId()).isLocked()) {
 									((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.noEnterCarLocked);
+									vee.setCancelled(true);
 								} else {
 									((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.doNotOwnCar);
+									Bukkit.getPlayer(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner()).sendMessage(Chars4Cars.prefix + Chars4Cars.yourCarStolen);
 								}
 							}
-						} catch (Exception e) {
-							e.printStackTrace();
+						} else {
+							if (!((Player) vee.getEntered()).getUniqueId().equals(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner())) {
+								((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.doNotOwnCar);
+								vee.setCancelled(true);
+							}
+						}
+
+					} else {
+						if (vee.getVehicle().getCustomName().substring(0, 16).equals("§aChars4Cars Car") && vee.getVehicle().getType().equals(EntityType.MINECART)) {
+							try {
+								String[] args = vee.getVehicle().getCustomName().split(":");
+								Car theCar = new Car(UUID.fromString(args[4]), Integer.parseInt(args[2]), Integer.parseInt(args[3]), args[1], (Minecart) vee.getVehicle(), Double.parseDouble(args[5]));
+
+								CarSpawnEvent cse = new CarSpawnEvent(theCar, theCar.getLocation(), true, (Player) vee.getEntered());
+								Bukkit.getServer().getPluginManager().callEvent(cse);
+
+								if (cse.isCancelled()) {
+									theCar.remove();
+									return;
+								}
+
+								Cars.CarMap.put(vee.getVehicle().getUniqueId(), theCar);
+								if (!vee.getEntered().getUniqueId().equals(UUID.fromString(args[4]))) {
+									if (Chars4Cars.carLocking) {
+										((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.noEnterCarLocked);
+									} else {
+										((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.doNotOwnCar);
+									}
+								}
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
 						}
 					}
+				} else {
+					vee.getEntered().sendMessage(Chars4Cars.noPerm);
 				}
 			}
 		}
