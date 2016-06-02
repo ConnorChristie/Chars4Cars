@@ -2,6 +2,7 @@ package me.dasetwas;
 
 import java.util.UUID;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
@@ -41,6 +42,9 @@ public class Car {
 	Scoreboard sb = Bukkit.getServer().getScoreboardManager().getNewScoreboard();
 
 	// API
+	/**
+	 * If the car should call an CarUpdateEvent everytime it gets updated.
+	 */
 	boolean notifyUpdate = false;
 
 	// Physics
@@ -67,12 +71,13 @@ public class Car {
 	double currentGearRatio;
 	int i;
 	boolean isLocked;
+	double wheelAngle;
 	double fuel;
 	double brakeAcc;
 	double G, lastG;
 	double hitBoxX;
 	double hitBoxZ;
-	double rSpeed, lastRSpeed;
+	Vector rSpeed = new Vector(), lastRSpeed = rSpeed;
 
 	/**
 	 * Car constructor
@@ -120,10 +125,6 @@ public class Car {
 	/**
 	 * Car constructor for existing car entities
 	 * 
-	 * @param yaw
-	 *            Yaw of car when placed
-	 * @param spawnLocation
-	 *            Location of car when placed
 	 * @param owner
 	 *            UUID of player owning the car
 	 * @param enginePower
@@ -186,7 +187,7 @@ public class Car {
 		if (currentGear == -1) {
 			speed = -speed;
 		}
-		rSpeed = speed;
+		rSpeed = new Vector(this.vx * 20, this.vy * 20, this.vz * 20);
 
 		if (currentGear != 1) {
 			clutchPercent = Math.min(1, clutchPercent + 0.075);
@@ -209,6 +210,11 @@ public class Car {
 			this.passengerPitch = passenger.getLocation().getPitch();
 			this.passengerYaw = passenger.getLocation().getYaw();
 			engineRunning = true;
+
+			if (!passenger.hasPermission("c4c.usecar")) {
+				passenger.sendMessage(Chars4Cars.noPerm);
+				passenger.leaveVehicle();
+			}
 
 			if (throttle > 0.5) {
 				throttle = (float) Math.max(0.5, throttle - 0.02);
@@ -246,7 +252,7 @@ public class Car {
 				}
 			}
 		} else {
-			brake = 1;
+			brake = 0.1f;
 			engineRunning = false;
 			currentGear = 0;
 			throttle = 0;
@@ -262,15 +268,18 @@ public class Car {
 			}
 			steerAngle = Math.min(25, Math.max(-25, steerAngle + side * 2));
 		} else {
-			if (steerAngle > 0) {
-				steerAngle = Math.max(0, steerAngle - 10);
-			} else if (steerAngle < 0) {
-				steerAngle = Math.min(0, steerAngle + 10);
+			if (passenger != null) {
+				if (steerAngle > 0) {
+					steerAngle = Math.max(0, steerAngle - 10);
+				} else if (steerAngle < 0) {
+					steerAngle = Math.min(0, steerAngle + 10);
+				}
 			}
 		}
 
 		if (isOnGround()) {
-			this.yaw = (float) (this.yaw + (-steerAngle * (Math.min(Math.abs(rSpeed) / 20, 1)) / Math.max(1, rSpeed / 5)) * (currentGear == -1 ? -1 : 1) * 0.6);
+			this.yaw = (float) (this.yaw + (-steerAngle * (Math.min(Math.abs(rSpeed.length()) / 20, 1)) / Math.max(1, rSpeed.length() / 5)) * (currentGear == -1 ? -1 : 1) * 0.6);
+			wheelAngle = (float) (this.yaw + (-steerAngle * (Math.min(Math.abs(rSpeed.length()) / 20, 1)) / Math.max(1, rSpeed.length() / 5)) * (currentGear == -1 ? -1 : 1) * 0.6);
 		}
 
 		// Set gearRatio to current gear's one.
@@ -369,8 +378,7 @@ public class Car {
 			}
 		}
 		// ---
-
-		G = Math.abs((rSpeed - lastRSpeed) / 16 / (0.05) * Chars4Cars.updateDelta);
+		G = Math.abs((new Vector(rSpeed.getX(), rSpeed.getY(), rSpeed.getZ()).subtract(lastRSpeed).length()) / 16 / (0.05 * Chars4Cars.updateDelta));
 
 		// Some code by storm345 modified to appeal more to me :)
 		BlockFace face = getFace(this.yaw);
@@ -405,7 +413,7 @@ public class Car {
 				hitBoxX = this.vx;
 		}
 
-		climbLoc = car.getLocation().add(this.vx * 2.3 + hitBoxX, Math.max(0.1f, this.vy * -1), this.vz * 2.3 + hitBoxZ);
+		climbLoc = car.getLocation().add(this.vx * Chars4Cars.climbBlockSearchFactor + hitBoxX, Math.max(0.1f, this.vy * -1), this.vz * Chars4Cars.climbBlockSearchFactor + hitBoxZ);
 		// climbLoc.add(0 ,1 ,0) will change climbloc :P
 		overLoc = new Location(climbLoc.getWorld(), climbLoc.getX(), climbLoc.getY() + 1, climbLoc.getZ());
 
@@ -463,7 +471,7 @@ public class Car {
 
 		if (Chars4Cars.exhaustSmoke && engineRPM > 400) {
 			Vector flyVec = new Vector(rotateScalar(0.2, yaw + 180).getX(), 0.06 + Math.random() / 2, rotateScalar(0.2, yaw + 180).getZ());
-			Location exhaustLoc = new Location(car.getWorld(), this.x + rotateScalar(0.8, yaw + 180).getX() - this.vx * 1.6, this.y + 0.1, this.z + rotateScalar(0.8, yaw + 180).getZ() - this.vz * 1.6);
+			Location exhaustLoc = new Location(car.getWorld(), this.x + rotateScalar(0.8, yaw + 180).getX() - this.vx * 7, this.y + 0.1, this.z + rotateScalar(0.8, yaw + 180).getZ() - this.vz * 7);
 			ParticleEffect.SMOKE_NORMAL.display(flyVec, 0.4f, exhaustLoc, 20.0);
 		}
 
@@ -485,6 +493,7 @@ public class Car {
 				Score scThrottle = stats.getScore("Throttle: " + (int) Math.floor(throttle * 100) + "%");
 				Score scBrake = stats.getScore("Brake: " + (int) Math.floor(brake * 100) + "%");
 				Score scG = stats.getScore("G Force: " + (float) Math.floor((lastG + G) / 2 * 100) / 100 + "*32m/s²");
+				Score scName = stats.getScore(ChatColor.DARK_GRAY + "--==" + ChatColor.GREEN + " Car" + ChatColor.DARK_GRAY + ": " + ChatColor.RESET + name + ChatColor.DARK_GRAY + " ==--");
 
 				if (Chars4Cars.fuel) {
 					Score scFuel = stats.getScore("Fuel: " + Math.floor(fuel * 100) / 100);
@@ -497,6 +506,7 @@ public class Car {
 				scThrottle.setScore(4);
 				scBrake.setScore(5);
 				scG.setScore(6);
+				scName.setScore(7);
 
 				passenger.setScoreboard(sb);
 			}
@@ -545,7 +555,7 @@ public class Car {
 	 * Shift up
 	 */
 	public void shiftUp() {
-		if (rSpeed < 0 && currentGear == -1) {
+		if (rSpeed.length() < 0 && currentGear == -1) {
 		} else if (!(engineRPM == 0)) {
 			this.currentGear++;
 		}
@@ -560,7 +570,7 @@ public class Car {
 	 * Shift down
 	 */
 	public void shiftDown() {
-		if (rSpeed > 0 && currentGear - 1 == -1) {
+		if (rSpeed.length() > 0 && currentGear - 1 == -1) {
 		} else if (!(engineRPM == 0)) {
 			this.currentGear--;
 		}
@@ -714,7 +724,7 @@ public class Car {
 	 * 
 	 * @param yaw
 	 *            Direction of the face being searched
-	 * @return
+	 * @return Nearest BlockFace.
 	 */
 	public static BlockFace getFace(float yaw) {
 		yaw = yaw % 360;

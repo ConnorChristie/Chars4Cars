@@ -1,14 +1,22 @@
 package me.dasetwas;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.util.Vector;
 
+/**
+ * 
+ * @author DasEtwas
+ *
+ */
 public class AABB {
 
 	public static final double carWidth = 0.95 / 2;
 
+	/**
+	 * @param loc
+	 *            Location of Car Entity to simulate collision with.
+	 * @return Material[4] with Block materials at edges of hitbox
+	 */
 	public static Material[] collide(Location loc) {
 		double x = loc.getX(), xx;
 		double y = loc.getY(), yy;
@@ -26,6 +34,11 @@ public class AABB {
 		return types;
 	}
 
+	/**
+	 * @param loc
+	 *            Location of Car Entity to simulate collision with.
+	 * @return If hitbox collides with a Slab.
+	 */
 	public static boolean hasSlab(Location loc) {
 		int i = 0;
 		Material[] types = collide(loc);
@@ -38,6 +51,11 @@ public class AABB {
 		return false;
 	}
 
+	/**
+	 * @param loc
+	 *            Location of Car Entity to simulate collision with.
+	 * @return If hitbox collides with a climbable block.
+	 */
 	public static boolean hasClimbable(Location loc) {
 		int i = 0;
 		Material[] types = collide(loc);
@@ -50,6 +68,11 @@ public class AABB {
 		return false;
 	}
 
+	/**
+	 * @param loc
+	 *            Location of Car Entity to simulate collision with.
+	 * @return If hitbox collides with a solid block.
+	 */
 	public static boolean hasSolid(Location loc) {
 		int i = 0;
 		Material[] types = collide(loc);

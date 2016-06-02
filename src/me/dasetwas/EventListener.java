@@ -30,7 +30,6 @@ import org.bukkit.event.vehicle.VehicleExitEvent;
 import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.ItemStack;
 
-import me.dasetwas.event.CarConvertEvent;
 import me.dasetwas.event.CarSpawnEvent;
 import net.milkbowl.vault.economy.EconomyResponse;
 
@@ -55,54 +54,45 @@ public class EventListener implements Listener {
 	public void destroyCar(VehicleDestroyEvent vde) {
 		if (!vde.isCancelled()) {
 			if (Cars.isCar(vde.getVehicle().getUniqueId())) {
+				if (((Player) vde.getAttacker()).hasPermission("c4c.owneroverride") || Cars.CarMap.get(vde.getVehicle().getUniqueId()).owner.equals(vde.getAttacker().getUniqueId())) {
 
-				boolean ownerSurvival = false;
-				boolean ownerCreativeButHasPermission = false;
-
-				if (Bukkit.getPlayer(Cars.CarMap.get(vde.getVehicle().getUniqueId()).getOwner()) != null) {
-					ownerSurvival = (Bukkit.getPlayer(Cars.CarMap.get(vde.getVehicle().getUniqueId()).getOwner()).getGameMode() == GameMode.SURVIVAL);
-					ownerCreativeButHasPermission = (Bukkit.getPlayer((Cars.CarMap.get(vde.getVehicle().getUniqueId()).getOwner())).getGameMode() == GameMode.CREATIVE) && (Bukkit.getPlayer(Cars.CarMap.get(vde.getVehicle().getUniqueId()).getOwner()).hasPermission("c4c.dropoverride"));
-				}
-
-				if (ownerSurvival || ownerCreativeButHasPermission) {
 					Car theCar = Cars.CarMap.get(vde.getVehicle().getUniqueId());
 
-					Cars.dropCar(theCar, theCar.getLocation());
+					if ((((Player) vde.getAttacker()).getGameMode().equals(GameMode.CREATIVE) && vde.getAttacker().hasPermission("c4c.dropoverride")) || !((Player) vde.getAttacker()).getGameMode().equals(GameMode.CREATIVE)) {
+						Cars.dropCar(theCar, theCar.getLocation());
+					}
 
 					theCar.remove();
 
 					Cars.CarMap.remove(vde.getVehicle().getUniqueId());
-
-					vde.setCancelled(true);
 				}
+				vde.setCancelled(true);
 			} else {
-				if (vde.getVehicle().getCustomName().substring(0, 16).equals("§aChars4Cars Car")) {
-					try {
+				try {
+					if (vde.getVehicle().getCustomName().substring(0, 16).equals("§aChars4Cars Car")) {
+
 						String[] args = vde.getVehicle().getCustomName().split(":");
 
 						if (!UUID.fromString(args[4]).equals(vde.getAttacker().getUniqueId())) {
 							if (!((Player) vde.getAttacker()).hasPermission("c4c.owneroverride")) {
 								vde.setCancelled(true);
 							} else {
-								CarConvertEvent cce = new CarConvertEvent((Minecart) vde.getVehicle());
-
-								if (cce.isCancelled()) {
-									vde.setCancelled(true);
-									return;
+								if ((((Player) vde.getAttacker()).getGameMode().equals(GameMode.CREATIVE) && vde.getAttacker().hasPermission("c4c.dropoverride")) || !((Player) vde.getAttacker()).getGameMode().equals(GameMode.CREATIVE)) {
+									vde.getVehicle().getWorld().dropItemNaturally(vde.getVehicle().getLocation(), CarGetter.createCar(args[1], Integer.parseInt(args[2]), Integer.parseInt(args[3]), Double.parseDouble(args[5])));
 								}
-
-								vde.getVehicle().getWorld().dropItemNaturally(vde.getVehicle().getLocation(), CarGetter.createCar(args[1], Integer.parseInt(args[2]), Integer.parseInt(args[3]), Double.parseDouble(args[5])));
 								vde.getVehicle().remove();
 								vde.setCancelled(true);
 							}
 						} else {
-							vde.getVehicle().getWorld().dropItemNaturally(vde.getVehicle().getLocation(), CarGetter.createCar(args[1], Integer.parseInt(args[2]), Integer.parseInt(args[3]), Double.parseDouble(args[5])));
+							if ((((Player) vde.getAttacker()).getGameMode().equals(GameMode.CREATIVE) && vde.getAttacker().hasPermission("c4c.dropoverride")) || !((Player) vde.getAttacker()).getGameMode().equals(GameMode.CREATIVE)) {
+								vde.getVehicle().getWorld().dropItemNaturally(vde.getVehicle().getLocation(), CarGetter.createCar(args[1], Integer.parseInt(args[2]), Integer.parseInt(args[3]), Double.parseDouble(args[5])));
+							}
 							vde.getVehicle().remove();
 							vde.setCancelled(true);
 						}
 
-					} catch (Exception e) {
 					}
+				} catch (Exception e) {
 				}
 			}
 		}
@@ -211,16 +201,18 @@ public class EventListener implements Listener {
 			}
 		}
 
-		if (Compat.getItemInMainHand((user.getInventory())).getType().equals(Material.MINECART)) {
-			if (user.hasPermission("c4c.placecar")) {
-				// get Item in hand to later test if it is a minecart with
-				// lores
-				ItemStack car = Compat.getItemInMainHand(user.getInventory());
+		if (Compat.getItemInMainHand(user.getInventory()).getType().equals(Material.MINECART)) {
 
-				if (car.hasItemMeta()) {
-					if (car.getItemMeta().hasLore()) {
+			// get Item in hand to later test if it is a minecart with
+			// lores
+			ItemStack car = Compat.getItemInMainHand(user.getInventory());
+
+			if (car.hasItemMeta()) {
+				if (car.getItemMeta().hasLore()) {
+
+					if (user.hasPermission("c4c.placecar")) {
+
 						// Avoid double placement
-
 						if (creativePlaceCooldown == 1) {
 							creativePlaceCooldown = 0;
 						} else {
@@ -261,11 +253,11 @@ public class EventListener implements Listener {
 								pie.setCancelled(true);
 							}
 						}
+					} else {
+						user.sendMessage(Chars4Cars.noPerm + "ülül");
 					}
 				}
 			}
-		} else {
-			user.sendMessage(Chars4Cars.noPerm);
 		}
 	}
 
@@ -386,10 +378,7 @@ public class EventListener implements Listener {
 	public void carCollision(VehicleEntityCollisionEvent vece) {
 		try {
 			if (vece.getVehicle().getCustomName().substring(0, 16).equals("§aChars4Cars Car")) {
-				String[] args = vece.getVehicle().getCustomName().split(":");
-				if (!UUID.fromString(args[4]).equals(vece.getEntity().getUniqueId())) {
-					vece.setCollisionCancelled(true);
-				}
+				vece.setCollisionCancelled(true);
 			}
 		} catch (Exception e) {
 		}
@@ -411,56 +400,63 @@ public class EventListener implements Listener {
 	public void carEnter(VehicleEnterEvent vee) {
 		if (!vee.isCancelled()) {
 			if (vee.getEntered() instanceof Player) {
-				if (vee.getEntered().hasPermission("c4c.usecar")) {
-					if (Cars.isCar(vee.getVehicle().getUniqueId())) {
+				if (Cars.isCar(vee.getVehicle().getUniqueId())) {
 
-						if (Chars4Cars.carLocking) {
-							if (!((Player) vee.getEntered()).getUniqueId().equals(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner())) {
-
-								if (Cars.CarMap.get(vee.getVehicle().getUniqueId()).isLocked()) {
-									((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.noEnterCarLocked);
-									vee.setCancelled(true);
-								} else {
-									((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.doNotOwnCar);
-									Bukkit.getPlayer(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner()).sendMessage(Chars4Cars.prefix + Chars4Cars.yourCarStolen);
-								}
-							}
-						} else {
-							if (!((Player) vee.getEntered()).getUniqueId().equals(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner())) {
-								((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.doNotOwnCar);
-								vee.setCancelled(true);
-							}
+					if (Chars4Cars.carLocking) {
+						if (!vee.getEntered().hasPermission("c4c.usecar")) {
+							vee.getEntered().sendMessage(Chars4Cars.noPerm);
+							vee.setCancelled(true);
+							return;
 						}
 
-					} else {
-						if (vee.getVehicle().getCustomName().substring(0, 16).equals("§aChars4Cars Car") && vee.getVehicle().getType().equals(EntityType.MINECART)) {
-							try {
-								String[] args = vee.getVehicle().getCustomName().split(":");
-								Car theCar = new Car(UUID.fromString(args[4]), Integer.parseInt(args[2]), Integer.parseInt(args[3]), args[1], (Minecart) vee.getVehicle(), Double.parseDouble(args[5]));
-
-								CarSpawnEvent cse = new CarSpawnEvent(theCar, theCar.getLocation(), true, (Player) vee.getEntered());
-								Bukkit.getServer().getPluginManager().callEvent(cse);
-
-								if (cse.isCancelled()) {
-									theCar.remove();
-									return;
-								}
-
-								Cars.CarMap.put(vee.getVehicle().getUniqueId(), theCar);
-								if (!vee.getEntered().getUniqueId().equals(UUID.fromString(args[4]))) {
-									if (Chars4Cars.carLocking) {
-										((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.noEnterCarLocked);
-									} else {
-										((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.doNotOwnCar);
-									}
-								}
-							} catch (Exception e) {
-								e.printStackTrace();
+						if (!((Player) vee.getEntered()).getUniqueId().equals(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner())) {
+							if (Cars.CarMap.get(vee.getVehicle().getUniqueId()).isLocked()) {
+								((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.noEnterCarLocked);
+								vee.setCancelled(true);
+							} else {
+								((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.doNotOwnCar);
+								Bukkit.getPlayer(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner()).sendMessage(Chars4Cars.prefix + Chars4Cars.yourCarStolen);
 							}
+						}
+					} else {
+						if (!((Player) vee.getEntered()).getUniqueId().equals(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner())) {
+							((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.doNotOwnCar);
+							vee.setCancelled(true);
 						}
 					}
 				} else {
-					vee.getEntered().sendMessage(Chars4Cars.noPerm);
+					// If the entity is a car
+					if (vee.getVehicle().getCustomName().substring(0, 16).equals("§aChars4Cars Car") && vee.getVehicle().getType().equals(EntityType.MINECART)) {
+						if (!vee.getEntered().hasPermission("c4c.usecar")) {
+							vee.getEntered().sendMessage(Chars4Cars.noPerm);
+							vee.setCancelled(true);
+							return;
+						}
+
+						try {
+							String[] args = vee.getVehicle().getCustomName().split(":");
+							Car theCar = new Car(UUID.fromString(args[4]), Integer.parseInt(args[2]), Integer.parseInt(args[3]), args[1], (Minecart) vee.getVehicle(), Double.parseDouble(args[5]));
+
+							CarSpawnEvent cse = new CarSpawnEvent(theCar, theCar.getLocation(), true, (Player) vee.getEntered());
+							Bukkit.getServer().getPluginManager().callEvent(cse);
+
+							if (cse.isCancelled()) {
+								theCar.remove();
+								return;
+							}
+
+							Cars.CarMap.put(vee.getVehicle().getUniqueId(), theCar);
+							if (!vee.getEntered().getUniqueId().equals(UUID.fromString(args[4]))) {
+								if (Chars4Cars.carLocking) {
+									((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.noEnterCarLocked);
+								} else {
+									((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.doNotOwnCar);
+								}
+							}
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
 				}
 			}
 		}
@@ -479,9 +475,7 @@ public class EventListener implements Listener {
 						if (!(damager.getUniqueId().equals(Cars.CarMap.get(vde.getVehicle().getUniqueId()).getOwner()))) {
 
 							// Check if the damager is the Owner, which would
-							// let
-							// him
-							// destroy his car
+							// let him destroy his car
 							if (!damager.hasPermission("c4c.owneroverride")) {
 								vde.setCancelled(true);
 								damager.sendMessage(Chars4Cars.prefix + Chars4Cars.doNotOwnCar);

@@ -9,18 +9,12 @@ commands:
       description: Shows info about the Plugin.
       aliases: [c4c, charsforcars]
       usage: /chars4cars <reload> | <info> | <perms>
-      permission: c4c.info
-      permission-message: You don't have the permission to use that command!
    givecar:
       description: Gives you a car.
       usage: /givecar <Name> <Power> <Mass> <Fuel> [Player]
-      permission: c4c.givecar
-      permission-message: You don't have the permission to use that command!
    killcars:
       description: Kills specified cars.
       usage: /killcars <all> | <empty> | <soft>
-      permission: c4c.killcars
-      permission-message: You don't have the permission to use that command!
    getitemname:
       description: Gets the name of the item that can be used in the config.
       usage: /getitemname

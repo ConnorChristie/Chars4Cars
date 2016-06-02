@@ -24,7 +24,7 @@ public class CarsAPI {
 	 * 
 	 * @return CarMap
 	 */
-	public HashMap<UUID, Car> getCarsMap() {
+	public HashMap<UUID, me.dasetwas.Car> getCarsMap() {
 		return Cars.CarMap;
 	}
 

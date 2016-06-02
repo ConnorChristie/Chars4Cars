@@ -37,7 +37,6 @@ public class Chars4Cars extends JavaPlugin {
 	public static String noPerm;
 	public static String noEnterCarLocked;
 	public static String owner;
-	public static String couldNotGiveCar;
 	public static String givenCar;
 	public static String carLocked;
 	public static boolean carLocking;
@@ -51,6 +50,7 @@ public class Chars4Cars extends JavaPlugin {
 	public static Plugin plugin;
 	public static String commandSuccess;
 	public static String yourCarUnlocked;
+
 	public static int updateDelta;
 	public static boolean exhaustSmoke;
 	public static boolean limitToWorlds;
@@ -65,6 +65,7 @@ public class Chars4Cars extends JavaPlugin {
 	public static float volume;
 	public static boolean climbBlocks;
 	public static List<String> climbBlocksList;
+	public static float climbBlockSearchFactor;
 	public static boolean economyPresent;
 	public static Economy economy;
 	public static double defaultFuel;
@@ -101,6 +102,9 @@ public class Chars4Cars extends JavaPlugin {
 			getLogger().info("Hooked into Vault.");
 		}
 
+		getCommand("c4c").setTabCompleter(new TabFiller());
+		getCommand("chars4cars").setTabCompleter(new TabFiller());
+		getCommand("killcars").setTabCompleter(new TabFiller());
 		loadConfig();
 
 		plugin = this;
@@ -149,13 +153,10 @@ public class Chars4Cars extends JavaPlugin {
 		carRecipe.setIngredient('M', Material.MINECART); // Minecart
 
 		Bukkit.getServer().addRecipe(carRecipe);
-
-		getLogger().info("Plugin enabled.");
 	}
 
 	@Override
 	public void onDisable() {
-		getLogger().info("Plugin disabled.");
 		HandlerList.unregisterAll();
 	}
 
@@ -174,21 +175,22 @@ public class Chars4Cars extends JavaPlugin {
 				if (sender.hasPermission("c4c.info")) {
 					sender.sendMessage(prefix + funcMSG);
 					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&a===< &8Chars4Cars command information &a>==="));
-					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&7/givecar &a<&7name&a>&7 &a<&7power&a>&7 &a<&7mass&a>&7 &e[&7player&e]"));
+					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&7/givecar &a<&7name&a>&7 &a<&7power&a>&7 &a<&7mass&a>&7 &a<&7fuel&a>&7 &e[&7player&e]"));
 					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8Gives you or &e[&7player&e]&8 a car with the given properties."));
 					sender.sendMessage("");
 					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&7/c4c &a<&7info&a>&7 | &a<&7reload&a>&7 | &a<&7perms&a>"));
 					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8Reloads the plugin, shows info or shows permission nodes."));
+					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8When no argument is given, this info will show."));
 					sender.sendMessage("");
 					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&7/killcars &a<&7all&a>&7 | &a<&7empty&a>&7 | &a<&7soft&a>&7 | &a<&7drop&a>"));
 					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8Kills all cars:"));
-					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "all     - All cars get deleted completely."));
-					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "empty - All empty cars get deleted completely."));
-					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "drop  - All empty cars get dropped."));
-					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "soft   - All car entities get removed, but:"));
-					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "        - If the owner is online, he gets his car."));
-					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "        - If not, the pasenger gets the car."));
-					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "        - If no passenger is present, the car gets dropped."));
+					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8all     - All cars get deleted completely."));
+					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8empty - All empty cars get deleted completely."));
+					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8drop  - All empty cars get dropped."));
+					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8soft   - All car entities get removed, but:"));
+					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8        - If the owner is online, he gets his car."));
+					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8        - If not, the pasenger gets the car."));
+					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8        - If no passenger is present, the car gets dropped."));
 					sender.sendMessage("");
 					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&7/getitemname"));
 					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8Displays the name of the item in your hand, which can be used in the config."));
@@ -207,9 +209,9 @@ public class Chars4Cars extends JavaPlugin {
 						sender.sendMessage(noPerm);
 					}
 				} else if (args[0].equalsIgnoreCase("info") && args.length == 1) {
-					sender.sendMessage("&aChars&74&aCars &8- (&7Characters for Cars&8)");
-					sender.sendMessage("       &8Made by &fDasEtwas          ");
-					sender.sendMessage("          Version " + this.getDescription().getVersion());
+					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar,"&aChars&74&aCars &8- (&7Characters for Cars&8)"));
+					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar,"       &8Made by &fDasEtwas          "));
+					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar,"          Version " + this.getDescription().getVersion()));
 
 				} else if (args[0].equalsIgnoreCase("perms") && args.length == 1) {
 					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&a===< Chars4Cars command permissions >==="));
@@ -246,7 +248,8 @@ public class Chars4Cars extends JavaPlugin {
 							sender.sendMessage(prefix + "The argument [Player] has to be used in the console.");
 						} else {
 							try {
-								CarGetter.getCar(((Player) sender), args[0], (int) Double.parseDouble(args[1]), (int) Double.parseDouble(args[2]), Double.parseDouble(args[3]));
+								CarGetter.getCar(((Player) sender), args[0].replace("_", " "), (int) Double.parseDouble(args[1]), (int) Double.parseDouble(args[2]), Double.parseDouble(args[3]));
+								sender.sendMessage(prefix + commandSuccess);
 							} catch (NumberFormatException nfe) {
 								sender.sendMessage(prefix + "Usage: /givecar <name> <power> <mass> <fuel> [player]");
 							}
@@ -255,9 +258,11 @@ public class Chars4Cars extends JavaPlugin {
 					} else if (args.length == 5) {
 						if (Bukkit.getPlayer(args[4]) != null) {
 							try {
-								CarGetter.getCar(Bukkit.getPlayer(args[3]), args[0], (int) Double.parseDouble(args[1]), (int) Double.parseDouble(args[2]), Double.parseDouble(args[3]));
+								CarGetter.getCar(Bukkit.getPlayer(args[4]), args[0], (int) Double.parseDouble(args[1]), (int) Double.parseDouble(args[2]), Double.parseDouble(args[3]));
 								sender.sendMessage(prefix + commandSuccess);
-								Bukkit.getPlayer(args[3]).sendMessage(prefix + givenCar);
+								if (!sender.getName().equals(args[4])) {
+									Bukkit.getPlayer(args[4]).sendMessage(prefix + givenCar);
+								}
 							} catch (NumberFormatException nfe) {
 								sender.sendMessage(prefix + "Usage: /givecar <name> <power> <mass> <fuel> [player]");
 							}
@@ -268,7 +273,6 @@ public class Chars4Cars extends JavaPlugin {
 						sender.sendMessage(prefix + "Usage: /givecar <name> <power> <mass> <fuel> [player]");
 					}
 				} catch (Exception e) {
-					getLogger().info(prefix + couldNotGiveCar);
 					e.printStackTrace();
 				}
 			} else {
@@ -328,7 +332,6 @@ public class Chars4Cars extends JavaPlugin {
 		// Perm
 		// Warn
 		// Info
-		// Error
 		// Game
 
 		getConfig().addDefault("perm.doNotOwnCar", "&4You do not own that car.");
@@ -347,7 +350,6 @@ public class Chars4Cars extends JavaPlugin {
 		getConfig().addDefault("info.yourCarUnlocked", "&8Your car is now unlocked.");
 		getConfig().addDefault("info.commandSuccess", "&8Command executed successfully.");
 		getConfig().addDefault("info.boughtFuel", "&8You bought &f%LT%&8L of fuel for &f%LP%&7%CS%&8 per Liter.");
-		getConfig().addDefault("error.couldNotGiveCar", "&4Could not give a car. &c(See console output)");
 
 		getConfig().addDefault("game.limitToWorlds.enable", false);
 		List<String> wl = new ArrayList<String>();
@@ -359,6 +361,7 @@ public class Chars4Cars extends JavaPlugin {
 		cb.add("(/getitemname)");
 		getConfig().addDefault("game.climbBlocks.enable", false);
 		getConfig().addDefault("game.climbBlocks.climb", cb);
+		getConfig().addDefault("game.climbBlocks.searchFactor", 2.3);
 		getConfig().addDefault("game.carLocking", true);
 		getConfig().addDefault("game.exhaustSmoke", true);
 		getConfig().addDefault("game.volume", 100);
@@ -376,7 +379,6 @@ public class Chars4Cars extends JavaPlugin {
 		// Perm
 		// Warn
 		// Info
-		// Error
 		// Game
 
 		doNotOwnCar = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("perm.doNotOwnCar"));
@@ -395,10 +397,10 @@ public class Chars4Cars extends JavaPlugin {
 		yourCarUnlocked = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("info.yourCarUnlocked"));
 		commandSuccess = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("info.commandSuccess"));
 		boughtFuel = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("info.boughtFuel"));
-		couldNotGiveCar = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("error.couldNotGiveCar"));
 
 		climbBlocks = getConfig().getBoolean("game.climbBlocks.enable");
 		climbBlocksList = (List<String>) getConfig().getList("climbBlocks.climb");
+		climbBlockSearchFactor = (float) getConfig().getDouble("game.climbBlocks.searchFactor");
 		defaultPower = getConfig().getInt("game.defaultPower");
 		defaultMass = getConfig().getInt("game.defaultMass");
 		defaultFuel = getConfig().getDouble("game.defaultFuel");
