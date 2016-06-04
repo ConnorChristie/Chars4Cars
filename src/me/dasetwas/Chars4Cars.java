@@ -44,7 +44,7 @@ public class Chars4Cars extends JavaPlugin {
 	public static String yourCarStolen;
 	public static String notOnline;
 	public static String noFuelBuySelf;
-	public static String prefix = ChatColor.translateAlternateColorCodes(altColorChar, "&7[&aC&84&aC&7]&r ");
+	public static String PREFIX = ChatColor.translateAlternateColorCodes(altColorChar, "&7[&aC&84&aC&7]&r ");
 	public static int ppp = 0;
 	public static String yourCarDamaged;
 	public static boolean fuel;
@@ -88,7 +88,7 @@ public class Chars4Cars extends JavaPlugin {
 		}
 		Compat.setup();
 
-		Bukkit.getLogger().info("Found minecraft version: " + MCVersion);
+		getLogger().info("Found minecraft version: " + MCVersion);
 
 		if (!setupProtocolLib()) {
 			getLogger().warning("DID NOT FIND ProtocolLib. DISABLING PLUGIN");
@@ -175,7 +175,7 @@ public class Chars4Cars extends JavaPlugin {
 			 */
 			if (args.length == 0) {
 				if (sender.hasPermission("c4c.info")) {
-					sender.sendMessage(prefix + funcMSG);
+					sender.sendMessage(PREFIX + funcMSG);
 					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&a===< &8Chars4Cars command information &a>==="));
 					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&7/givecar &a<&7name&a>&7 &a<&7power&a>&7 &a<&7mass&a>&7 &a<&7fuel&a>&7 &e[&7player&e]"));
 					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8Gives you or &e[&7player&e]&8 a car with the given properties."));
@@ -205,7 +205,7 @@ public class Chars4Cars extends JavaPlugin {
 					if (sender.hasPermission("c4c.reload")) {
 						reloadConfig();
 						loadConfig();
-						sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, prefix + "&8Config reloaded."));
+						sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, PREFIX + "&8Config reloaded."));
 					} else {
 						sender.sendMessage(noPerm);
 					}
@@ -239,13 +239,13 @@ public class Chars4Cars extends JavaPlugin {
 							avgSpeed = ((avgSpeed * i) + Cars.CarMap.get(key).speed) / (i + 1);
 							avgGear = ((avgGear * i) + Cars.CarMap.get(key).currentGear) / (i + 1);
 						}
-						sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8Average speed: &f" + Math.floor(avgSpeed * 3.6 * 1000) / 1000) + "&8Kb/h");
+						sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, ("&8Average speed: &f" + Math.floor(avgSpeed * 3.6 * 1000) / 1000) + "&8Kb/h"));
 						sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8Average gear: &f" + Math.floor(avgGear * 10) / 10));
 					} else {
 						sender.sendMessage(noPerm);
 					}
 				} else {
-					sender.sendMessage(prefix + "Usage: /c4c <info> | <reload> | <perms> | <stats>");
+					sender.sendMessage(PREFIX + "Usage: /c4c <info> | <reload> | <perms> | <stats>");
 				}
 
 			} else {
@@ -263,13 +263,13 @@ public class Chars4Cars extends JavaPlugin {
 				try {
 					if (args.length == 4) {
 						if (!(sender instanceof Player)) {
-							sender.sendMessage(prefix + "The argument [Player] has to be used in the console.");
+							sender.sendMessage(PREFIX + "The argument [Player] has to be used in the console.");
 						} else {
 							try {
 								CarGetter.getCar(((Player) sender), args[0].replace("_", " "), (int) Double.parseDouble(args[1]), (int) Double.parseDouble(args[2]), Double.parseDouble(args[3]));
-								sender.sendMessage(prefix + commandSuccess);
+								sender.sendMessage(PREFIX + commandSuccess);
 							} catch (NumberFormatException nfe) {
-								sender.sendMessage(prefix + "Usage: /givecar <name> <power> <mass> <fuel> [player]");
+								sender.sendMessage(PREFIX + "Usage: /givecar <name> <power> <mass> <fuel> [player]");
 							}
 						}
 
@@ -277,18 +277,18 @@ public class Chars4Cars extends JavaPlugin {
 						if (Bukkit.getPlayer(args[4]) != null) {
 							try {
 								CarGetter.getCar(Bukkit.getPlayer(args[4]), args[0], (int) Double.parseDouble(args[1]), (int) Double.parseDouble(args[2]), Double.parseDouble(args[3]));
-								sender.sendMessage(prefix + commandSuccess);
+								sender.sendMessage(PREFIX + commandSuccess);
 								if (!sender.getName().equals(args[4])) {
-									Bukkit.getPlayer(args[4]).sendMessage(prefix + givenCar);
+									Bukkit.getPlayer(args[4]).sendMessage(PREFIX + givenCar);
 								}
 							} catch (NumberFormatException nfe) {
-								sender.sendMessage(prefix + "Usage: /givecar <name> <power> <mass> <fuel> [player]");
+								sender.sendMessage(PREFIX + "Usage: /givecar <name> <power> <mass> <fuel> [player]");
 							}
 						} else {
-							sender.sendMessage(prefix + notOnline);
+							sender.sendMessage(PREFIX + notOnline);
 						}
 					} else {
-						sender.sendMessage(prefix + "Usage: /givecar <name> <power> <mass> <fuel> [player]");
+						sender.sendMessage(PREFIX + "Usage: /givecar <name> <power> <mass> <fuel> [player]");
 					}
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -304,21 +304,21 @@ public class Chars4Cars extends JavaPlugin {
 				if (args.length > 0) {
 					if (args[0].equalsIgnoreCase("all") && args.length == 1) {
 						Cars.removeAllCars();
-						sender.sendMessage(prefix + commandSuccess);
+						sender.sendMessage(PREFIX + commandSuccess);
 					} else if (args[0].equalsIgnoreCase("empty") && args.length == 1) {
 						Cars.removeEmptyCars();
-						sender.sendMessage(prefix + commandSuccess);
+						sender.sendMessage(PREFIX + commandSuccess);
 					} else if (args[0].equalsIgnoreCase("drop") && args.length == 1) {
 						Cars.removeSoftCars(true);
-						sender.sendMessage(prefix + commandSuccess);
+						sender.sendMessage(PREFIX + commandSuccess);
 					} else if (args[0].equalsIgnoreCase("soft") && args.length == 1) {
 						Cars.removeSoftCars(false);
-						sender.sendMessage(prefix + commandSuccess);
+						sender.sendMessage(PREFIX + commandSuccess);
 					} else {
-						sender.sendMessage(prefix + "Usage: /killcars <all> | <empty> | <drop> | <soft>");
+						sender.sendMessage(PREFIX + "Usage: /killcars <all> | <empty> | <drop> | <soft>");
 					}
 				} else {
-					sender.sendMessage(prefix + "Usage: /killcars <all> | <empty> | <drop> | <soft>");
+					sender.sendMessage(PREFIX + "Usage: /killcars <all> | <empty> | <drop> | <soft>");
 				}
 			} else {
 				sender.sendMessage(noPerm);
@@ -328,7 +328,7 @@ public class Chars4Cars extends JavaPlugin {
 			if (sender instanceof Player) {
 				sender.sendMessage(Compat.getItemInMainHand(((Player) sender).getInventory()).getType().toString());
 			} else {
-				sender.sendMessage(prefix + "That command is only for players!");
+				sender.sendMessage(PREFIX + "That command is only for players!");
 			}
 
 		}

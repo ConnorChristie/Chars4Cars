@@ -28,6 +28,7 @@ permissions:
          c4c.info: true
          c4c.owneroverride: true
          c4c.givecar: true
+         c4c.stats: true
    c4c.dropoverride:
       description: Allows players in Gamemode Creative to get Car drops.
    c4c.givecar:
@@ -38,6 +39,8 @@ permissions:
       description: Allows players to use the /c4c [no arguments] command showing command help.
    c4c.createfuelstation:
       description: Allows the player to create Fuel Stations.
+   c4c.stats:
+      description: Allows players to use the /c4c stats command.
 
 softdepend: [Vault]
 depend: [ProtocolLib]

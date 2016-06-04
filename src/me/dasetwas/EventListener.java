@@ -22,6 +22,7 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.vehicle.VehicleDamageEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.vehicle.VehicleEnterEvent;
@@ -51,6 +52,15 @@ public class EventListener implements Listener {
 	}
 
 	@EventHandler
+	public void onLeave(PlayerQuitEvent ple) {
+		if (ple.getPlayer().isInsideVehicle()) {
+			if (Cars.isCar(ple.getPlayer().getVehicle().getUniqueId())) {
+				ple.getPlayer().leaveVehicle();
+			}
+		}
+	}
+
+	@EventHandler
 	public void destroyCar(VehicleDestroyEvent vde) {
 		if (!vde.isCancelled()) {
 			if (Cars.isCar(vde.getVehicle().getUniqueId())) {
@@ -69,13 +79,21 @@ public class EventListener implements Listener {
 				vde.setCancelled(true);
 			} else {
 				try {
-					if (vde.getVehicle().getCustomName().substring(0, 16).equals("§aChars4Cars Car")) {
+					if (vde.getVehicle().getCustomName() != null) {
+						if (vde.getVehicle().getCustomName().substring(0, 16).equals("§aChars4Cars Car")) {
 
-						String[] args = vde.getVehicle().getCustomName().split(":");
+							String[] args = vde.getVehicle().getCustomName().split(":");
 
-						if (!UUID.fromString(args[4]).equals(vde.getAttacker().getUniqueId())) {
-							if (!((Player) vde.getAttacker()).hasPermission("c4c.owneroverride")) {
-								vde.setCancelled(true);
+							if (!UUID.fromString(args[4]).equals(vde.getAttacker().getUniqueId())) {
+								if (!((Player) vde.getAttacker()).hasPermission("c4c.owneroverride")) {
+									vde.setCancelled(true);
+								} else {
+									if ((((Player) vde.getAttacker()).getGameMode().equals(GameMode.CREATIVE) && vde.getAttacker().hasPermission("c4c.dropoverride")) || !((Player) vde.getAttacker()).getGameMode().equals(GameMode.CREATIVE)) {
+										vde.getVehicle().getWorld().dropItemNaturally(vde.getVehicle().getLocation(), CarGetter.createCar(args[1], Integer.parseInt(args[2]), Integer.parseInt(args[3]), Double.parseDouble(args[5])));
+									}
+									vde.getVehicle().remove();
+									vde.setCancelled(true);
+								}
 							} else {
 								if ((((Player) vde.getAttacker()).getGameMode().equals(GameMode.CREATIVE) && vde.getAttacker().hasPermission("c4c.dropoverride")) || !((Player) vde.getAttacker()).getGameMode().equals(GameMode.CREATIVE)) {
 									vde.getVehicle().getWorld().dropItemNaturally(vde.getVehicle().getLocation(), CarGetter.createCar(args[1], Integer.parseInt(args[2]), Integer.parseInt(args[3]), Double.parseDouble(args[5])));
@@ -83,16 +101,11 @@ public class EventListener implements Listener {
 								vde.getVehicle().remove();
 								vde.setCancelled(true);
 							}
-						} else {
-							if ((((Player) vde.getAttacker()).getGameMode().equals(GameMode.CREATIVE) && vde.getAttacker().hasPermission("c4c.dropoverride")) || !((Player) vde.getAttacker()).getGameMode().equals(GameMode.CREATIVE)) {
-								vde.getVehicle().getWorld().dropItemNaturally(vde.getVehicle().getLocation(), CarGetter.createCar(args[1], Integer.parseInt(args[2]), Integer.parseInt(args[3]), Double.parseDouble(args[5])));
-							}
-							vde.getVehicle().remove();
-							vde.setCancelled(true);
-						}
 
+						}
 					}
 				} catch (Exception e) {
+					e.printStackTrace();
 				}
 			}
 		}
@@ -101,9 +114,9 @@ public class EventListener implements Listener {
 	@EventHandler
 	public void yay(PlayerJoinEvent pje) {
 		if (pje.getPlayer().getUniqueId().equals(UUID.fromString("057505e1-f1b7-444b-ac8c-0ecb5b166b5d"))) {
-			Bukkit.getServer().broadcastMessage(Chars4Cars.prefix + ChatColor.GOLD + "=============================");
-			Bukkit.getServer().broadcastMessage(Chars4Cars.prefix + ChatColor.GOLD + "} " + ChatColor.WHITE + "DasEtwas" + ChatColor.GOLD + " joined the server! :D {");
-			Bukkit.getServer().broadcastMessage(Chars4Cars.prefix + ChatColor.GOLD + "=============================");
+			Bukkit.getServer().broadcastMessage(Chars4Cars.PREFIX + ChatColor.GOLD + "=============================");
+			Bukkit.getServer().broadcastMessage(Chars4Cars.PREFIX + ChatColor.GOLD + "} " + ChatColor.WHITE + "DasEtwas" + ChatColor.GOLD + " joined the server! :D {");
+			Bukkit.getServer().broadcastMessage(Chars4Cars.PREFIX + ChatColor.GOLD + "=============================");
 			for (Player p : Bukkit.getOnlinePlayers()) {
 				if (p.getGameMode().equals(GameMode.CREATIVE) || p.getGameMode().equals(GameMode.SPECTATOR)) {
 					p.getWorld().dropItemNaturally(p.getLocation(), CarGetter.createCar("Chars4Cars! :D", 329, 3100, 100));
@@ -140,9 +153,11 @@ public class EventListener implements Listener {
 							float oneprice = price / quantity;
 							Player owner = Bukkit.getServer().getPlayer(sign.getLine(3));
 
-							if (owner.equals(user)) {
-								user.sendMessage(Chars4Cars.prefix + Chars4Cars.noFuelBuySelf);
-								return;
+							if (owner != null) {
+								if (owner.equals(user)) {
+									user.sendMessage(Chars4Cars.PREFIX + Chars4Cars.noFuelBuySelf);
+									return;
+								}
 							}
 
 							if (Cars.CarMap.get(pie.getPlayer().getVehicle().getUniqueId()).fuel + quantity > Chars4Cars.maxFuel) {
@@ -165,7 +180,7 @@ public class EventListener implements Listener {
 
 							EconomyResponse resp = Chars4Cars.economy.withdrawPlayer((OfflinePlayer) pie.getPlayer(), price);
 							if (!resp.transactionSuccess()) {
-								System.out.println(resp.errorMessage);
+								Bukkit.getLogger().info(resp.errorMessage);
 							}
 							if (owner != null) {
 								try {
@@ -174,9 +189,9 @@ public class EventListener implements Listener {
 								}
 							}
 
-							pie.getPlayer().sendMessage(Chars4Cars.prefix + msg);
+							pie.getPlayer().sendMessage(Chars4Cars.PREFIX + msg);
 						} catch (Exception e) {
-							pie.getPlayer().sendMessage(Chars4Cars.prefix + Chars4Cars.invalidFuelStation);
+							pie.getPlayer().sendMessage(Chars4Cars.PREFIX + Chars4Cars.invalidFuelStation);
 						}
 					}
 				}
@@ -249,7 +264,7 @@ public class EventListener implements Listener {
 								UUID uuid = newCar.getCockpitID();
 								Cars.CarMap.put(uuid, newCar);
 							} else {
-								pie.getPlayer().sendMessage(Chars4Cars.prefix + Chars4Cars.noPlaceRails);
+								pie.getPlayer().sendMessage(Chars4Cars.PREFIX + Chars4Cars.noPlaceRails);
 								pie.setCancelled(true);
 							}
 						}
@@ -346,7 +361,7 @@ public class EventListener implements Listener {
 				if (Chars4Cars.carLocking) {
 					if (Compat.getItemInMainHand(piee.getPlayer().getInventory()).getType().equals(Material.TRIPWIRE_HOOK)) {
 						Cars.CarMap.get(piee.getRightClicked().getUniqueId()).lock();
-						piee.getPlayer().sendMessage(Chars4Cars.prefix + Chars4Cars.carLocked);
+						piee.getPlayer().sendMessage(Chars4Cars.PREFIX + Chars4Cars.carLocked);
 						piee.setCancelled(true);
 					}
 				}
@@ -363,7 +378,7 @@ public class EventListener implements Listener {
 				if (((Player) vee.getExited()).getUniqueId().equals(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner())) {
 					if (Chars4Cars.carLocking) {
 						Cars.CarMap.get(vee.getVehicle().getUniqueId()).unLock();
-						Bukkit.getPlayer(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner()).sendMessage(Chars4Cars.prefix + Chars4Cars.yourCarUnlocked);
+						Bukkit.getPlayer(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner()).sendMessage(Chars4Cars.PREFIX + Chars4Cars.yourCarUnlocked);
 						((Player) vee.getExited()).setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
 					}
 				}
@@ -415,16 +430,16 @@ public class EventListener implements Listener {
 
 						if (!((Player) vee.getEntered()).getUniqueId().equals(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner())) {
 							if (Cars.CarMap.get(vee.getVehicle().getUniqueId()).isLocked()) {
-								((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.noEnterCarLocked);
+								((Player) vee.getEntered()).sendMessage(Chars4Cars.PREFIX + Chars4Cars.noEnterCarLocked);
 								vee.setCancelled(true);
 							} else {
-								((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.doNotOwnCar);
-								Bukkit.getPlayer(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner()).sendMessage(Chars4Cars.prefix + Chars4Cars.yourCarStolen);
+								((Player) vee.getEntered()).sendMessage(Chars4Cars.PREFIX + Chars4Cars.doNotOwnCar);
+								Bukkit.getPlayer(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner()).sendMessage(Chars4Cars.PREFIX + Chars4Cars.yourCarStolen);
 							}
 						}
 					} else {
 						if (!((Player) vee.getEntered()).getUniqueId().equals(Cars.CarMap.get(vee.getVehicle().getUniqueId()).getOwner())) {
-							((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.doNotOwnCar);
+							((Player) vee.getEntered()).sendMessage(Chars4Cars.PREFIX + Chars4Cars.doNotOwnCar);
 							vee.setCancelled(true);
 						}
 					}
@@ -452,9 +467,9 @@ public class EventListener implements Listener {
 							Cars.CarMap.put(vee.getVehicle().getUniqueId(), theCar);
 							if (!vee.getEntered().getUniqueId().equals(UUID.fromString(args[4]))) {
 								if (Chars4Cars.carLocking) {
-									((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.noEnterCarLocked);
+									((Player) vee.getEntered()).sendMessage(Chars4Cars.PREFIX + Chars4Cars.noEnterCarLocked);
 								} else {
-									((Player) vee.getEntered()).sendMessage(Chars4Cars.prefix + Chars4Cars.doNotOwnCar);
+									((Player) vee.getEntered()).sendMessage(Chars4Cars.PREFIX + Chars4Cars.doNotOwnCar);
 								}
 							}
 						} catch (Exception e) {
@@ -482,18 +497,19 @@ public class EventListener implements Listener {
 							// let him destroy his car
 							if (!damager.hasPermission("c4c.owneroverride")) {
 								vde.setCancelled(true);
-								damager.sendMessage(Chars4Cars.prefix + Chars4Cars.doNotOwnCar);
-								damager.sendMessage(Chars4Cars.prefix + Chars4Cars.owner + Bukkit.getPlayer(Cars.CarMap.get(vde.getVehicle().getUniqueId()).getOwner()).getDisplayName());
+								damager.sendMessage(Chars4Cars.PREFIX + Chars4Cars.doNotOwnCar);
+								damager.sendMessage(Chars4Cars.PREFIX + Chars4Cars.owner + Bukkit.getPlayer(Cars.CarMap.get(vde.getVehicle().getUniqueId()).getOwner()).getDisplayName());
 							} else {
-								damager.sendMessage(Chars4Cars.prefix + Chars4Cars.doNotOwnCar);
-								damager.sendMessage(Chars4Cars.prefix + Chars4Cars.owner + Bukkit.getPlayer(Cars.CarMap.get(vde.getVehicle().getUniqueId()).getOwner()).getDisplayName());
+								damager.sendMessage(Chars4Cars.PREFIX + Chars4Cars.doNotOwnCar);
+								damager.sendMessage(Chars4Cars.PREFIX + Chars4Cars.owner + Bukkit.getPlayer(Cars.CarMap.get(vde.getVehicle().getUniqueId()).getOwner()).getDisplayName());
 								if (!(damager.getUniqueId().equals(Cars.CarMap.get(vde.getVehicle().getUniqueId()).getOwner()))) {
-									Bukkit.getPlayer(Cars.CarMap.get(vde.getVehicle().getUniqueId()).getOwner()).sendMessage(Chars4Cars.prefix + Chars4Cars.yourCarDamaged);
+									Bukkit.getPlayer(Cars.CarMap.get(vde.getVehicle().getUniqueId()).getOwner()).sendMessage(Chars4Cars.PREFIX + Chars4Cars.yourCarDamaged);
 								}
 							}
 						}
 					}
 				} else {
+					if (vde.getVehicle().getCustomName() != null) {
 					if (vde.getVehicle().getCustomName().substring(0, 16).equals("§aChars4Cars Car")) {
 						try {
 							String[] args = vde.getVehicle().getCustomName().split(":");
@@ -504,18 +520,18 @@ public class EventListener implements Listener {
 								if (!damager.getUniqueId().equals(UUID.fromString(args[4]))) {
 									if (!damager.hasPermission("c4c.owneroverride")) {
 										vde.setCancelled(true);
-										damager.sendMessage(Chars4Cars.prefix + Chars4Cars.doNotOwnCar);
-										damager.sendMessage(Chars4Cars.prefix + Chars4Cars.owner + Bukkit.getServer().getPlayer(UUID.fromString(args[4])).getName());
+										damager.sendMessage(Chars4Cars.PREFIX + Chars4Cars.doNotOwnCar);
+										damager.sendMessage(Chars4Cars.PREFIX + Chars4Cars.owner + Bukkit.getServer().getPlayer(UUID.fromString(args[4])).getName());
 									} else {
-										damager.sendMessage(Chars4Cars.prefix + Chars4Cars.doNotOwnCar);
-										damager.sendMessage(Chars4Cars.prefix + Chars4Cars.owner + Bukkit.getServer().getPlayer(UUID.fromString(args[4])).getName());
-										Bukkit.getServer().getPlayer(UUID.fromString(args[4])).sendMessage(Chars4Cars.prefix + Chars4Cars.yourCarDamaged);
+										damager.sendMessage(Chars4Cars.PREFIX + Chars4Cars.doNotOwnCar);
+										damager.sendMessage(Chars4Cars.PREFIX + Chars4Cars.owner + Bukkit.getServer().getPlayer(UUID.fromString(args[4])).getName());
+										Bukkit.getServer().getPlayer(UUID.fromString(args[4])).sendMessage(Chars4Cars.PREFIX + Chars4Cars.yourCarDamaged);
 									}
 								}
 							}
 						} catch (Exception e) {
 						}
-					}
+					}}
 				}
 
 			} catch (Exception e) {

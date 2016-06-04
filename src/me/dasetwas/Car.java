@@ -207,7 +207,6 @@ public class Car {
 		car.teleport(new Location(spawnLocation.getWorld(), x, y, z, yaw - 90, 0));
 
 		this.cockpitID = car.getUniqueId();
-		spawned(false, this);
 	}
 
 	/**
@@ -239,18 +238,6 @@ public class Car {
 		car.setDisplayBlock(new MaterialData(Material.BARRIER));
 
 		this.cockpitID = car.getUniqueId();
-		spawned(true, this);
-	}
-
-	/**
-	 * Gets called when a Car instance is created.
-	 * 
-	 * @param revived
-	 *            If the car is revived from an existing minecart entity that
-	 *            previously was a car
-	 */
-	public void spawned(boolean revived, Car thisCar) {
-
 	}
 
 	/**
@@ -464,9 +451,7 @@ public class Car {
 			}
 		}
 		// ---
-		// G = Math.abs((new Vector(rSpeed.getX(), rSpeed.getY(),
-		// rSpeed.getZ()).subtract(lastRSpeed).length()) / 16 / (0.05 *
-		// Chars4Cars.updateDelta));
+		G = Math.abs((new Vector(rSpeed.getX(), rSpeed.getY(), rSpeed.getZ()).subtract(lastRSpeed).length()) / 16 / (0.05 * Chars4Cars.updateDelta));
 
 		// Some code by storm345 modified to appeal more to me :)
 		BlockFace face = getFace(this.yaw);
@@ -522,7 +507,8 @@ public class Car {
 				}
 			}
 		} else {
-			// If car would be at climbLoc, if it would collide there with blocks in the climbBlockList
+			// If car would be at climbLoc, if it would collide there with
+			// blocks in the climbBlockList
 			if (AABB.hasClimbList(climbLoc) && Math.abs(speed) > 0.1) {
 				// If car is NOT on a slab already
 				if ((this.y - ((int) this.y)) > Math.min(0.47, Chars4Cars.slabJumpVel)) {
@@ -543,6 +529,7 @@ public class Car {
 		soundLoc = new Location(car.getWorld(), this.x + this.vx, this.y + this.vy, this.z + this.vz);
 
 		if (Chars4Cars.volume > 0) {
+
 			if (Math.abs(lastEngineRPM - engineRPM) > 3 || (Math.floor(Math.random() * 3) == 0 && engineRPM > 1000)) {
 				soundLoc.getWorld().playSound(soundLoc, Compat.MinecartRoll, (float) ((engineRPM / maxEngineRPM * 0.5) + 0.3f) * Chars4Cars.volume, (float) (engineRPM / maxEngineRPM));
 			}
@@ -555,7 +542,7 @@ public class Car {
 			}
 
 			if (engineRPM > maxEngineRPM) {
-				soundLoc.getWorld().playSound(soundLoc, Compat.ChestOpen, 1 * Chars4Cars.volume, 1);
+				soundLoc.getWorld().playSound(soundLoc, Compat.ChestOpen, 1 * Chars4Cars.volume, 1.4f);
 			}
 
 			if ((car.getWorld().getBlockAt(car.getLocation()).getType().equals(Material.WATER) || car.getWorld().getBlockAt(car.getLocation()).getType().equals(Material.STATIONARY_WATER)) && engineRunning) {
@@ -688,7 +675,7 @@ public class Car {
 			}
 			currentGear--;
 			if (this.currentGear < Cars.minGear) {
-				this.currentGear = Cars.maxGear;
+				this.currentGear = Cars.minGear;
 			} else {
 				clutchPercent = 0;
 			}

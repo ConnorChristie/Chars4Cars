@@ -20,7 +20,7 @@ public class TabFiller implements TabCompleter {
 				list.add("reload");
 				list.add("perms");
 				list.add("stats");
-				list.add(" ");
+				list.add("   ");
 				return list;
 			}
 			if (cmd.getName().equalsIgnoreCase("killcars")) {
