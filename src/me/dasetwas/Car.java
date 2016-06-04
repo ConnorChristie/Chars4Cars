@@ -16,6 +16,9 @@ import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.util.Vector;
 
+import com.comphenix.protocol.PacketType;
+import com.comphenix.protocol.events.PacketContainer;
+
 import me.dasetwas.event.CarUpdateEvent;
 
 /**
@@ -27,18 +30,50 @@ import me.dasetwas.event.CarUpdateEvent;
 public class Car {
 
 	// Minecraft
+	/**
+	 * The UUID of the owner of the car.
+	 */
 	UUID owner;
+	/**
+	 * The current passenger of the minecart, null when empty.
+	 */
 	Player passenger;
+	/**
+	 * The UUID of the car minecart Entity.
+	 */
 	UUID cockpitID;
+	/**
+	 * The Minecart of the car.
+	 */
 	Minecart car;
+	/**
+	 * The name of the car.
+	 */
 	String name;
+	/**
+	 * climbLoc - Location for the car to check wether it should jump or not.
+	 * overLoc - Location for the car to check if it can jump or not by looking
+	 * at the ceiling (if present). soundLoc - Location for the car to play
+	 * various sounds.
+	 */
 	Location climbLoc, overLoc, soundLoc;
+	/**
+	 * x, y, z coordinates of the car minecart Entity.
+	 */
 	double x, y, z;
-	float yaw;
 	double vx, vz, vy;
-	float pitch;
-	float forw;
-	float side;
+	/**
+	 * Yaw and Pitch of the car minecart Entity.
+	 */
+	float yaw, pitch;
+	/**
+	 * Percentage of the movement key controls. Updated onPacketReceive. Front
+	 * left is 1,1
+	 */
+	float forw, side;
+	/**
+	 * Scoreboard for displaying statistics.
+	 */
 	Scoreboard sb = Bukkit.getServer().getScoreboardManager().getNewScoreboard();
 
 	// API
@@ -48,35 +83,88 @@ public class Car {
 	boolean notifyUpdate = false;
 
 	// Physics
+	/**
+	 * Angle which to add to yaw every update.
+	 */
 	double steerAngle;
-	double netForce;
+	/**
+	 * Engine Revolutions per Minute and RPM from last Update.
+	 */
 	double engineRPM = 0, lastEngineRPM = 0;
-	int mass;
-	float brake;
-	float throttle;
+	/**
+	 * Max amount of EngineRPM.
+	 */
 	int maxEngineRPM = 6500;
-	double engineAcc;
+	/**
+	 * Mass of car.
+	 */
+	int mass;
+	/**
+	 * Brake and Throttle pedal percentage. 1 = 100%
+	 */
+	float brake, throttle;
+	/**
+	 * Acceleration of car contributed by the engine or brake. Seperate.
+	 */
+	double engineAcc, brakeAcc;
+	/**
+	 * If engine is running. (Not if engineRPM > 0, just if the RPM is held over
+	 * 800)
+	 */
 	boolean engineRunning = true;
+	/**
+	 * Percentage of clutch friction. (Friction is 100%)
+	 */
 	double clutchPercent;
+	/**
+	 * Current speed and speed of last update. vy is ignored.
+	 */
 	double speed, lastSpeed;
+	/**
+	 * Current gear.
+	 */
 	int currentGear = 0;
+	/**
+	 * The engine power of the car in Newton-Meters (Torque). NOTE: NOT THE
+	 * ACTUAL POWER (Torque * RPM)
+	 */
 	int enginePower; // Newton-meter
-	double driveWheelRadius = 0.42;
+	/**
+	 * The radius of the cars' wheel.
+	 */
+	double driveWheelRadius = 0.37;
+	/**
+	 * The circumference of the car's wheel.
+	 */
 	double driveWheelCircumference = driveWheelRadius * 2 * Math.PI;
-	float passengerYaw = 0, passengerPitch = 0;
 	static double[] gearRatio = Cars.getGearRatios();
 	static double[] engineTorques = Cars.getEngineTorques();
 	static char[] gearNames = Cars.getGearNames();
+	/**
+	 * double differentialRatio = Chars4Cars.differentialRatio;
+	 */
 	double differentialRatio = Chars4Cars.differentialRatio;
+	/**
+	 * The currentGear's ratio.
+	 */
 	double currentGearRatio;
-	int i;
+	/**
+	 * If the car is locked.
+	 */
 	boolean isLocked;
-	double wheelAngle;
+	/**
+	 * The fuel of the car.
+	 */
 	double fuel;
-	double brakeAcc;
+	/**
+	 * G acceleration. 1G = 16m/s²
+	 */
 	double G, lastG;
-	double hitBoxX;
-	double hitBoxZ;
+	double hitBoxX = 0;
+	double hitBoxZ = 0;
+	/**
+	 * Actual vector of the car's velocity.
+	 */
 	Vector rSpeed = new Vector(), lastRSpeed = rSpeed;
 
 	/**
@@ -182,6 +270,7 @@ public class Car {
 		this.vz = car.getVelocity().getZ();
 		this.vy = car.getVelocity().getY();
 		this.yaw = car.getLocation().getYaw() + 90;
+		this.pitch = car.getLocation().getPitch() + 4;
 
 		speed = Math.sqrt(vx * vx + vz * vz) * 20;
 		if (currentGear == -1) {
@@ -207,8 +296,6 @@ public class Car {
 			}
 
 			passenger = (Player) car.getPassenger();
-			this.passengerPitch = passenger.getLocation().getPitch();
-			this.passengerYaw = passenger.getLocation().getYaw();
 			engineRunning = true;
 
 			if (!passenger.hasPermission("c4c.usecar")) {
@@ -279,11 +366,10 @@ public class Car {
 
 		if (isOnGround()) {
 			this.yaw = (float) (this.yaw + (-steerAngle * (Math.min(Math.abs(rSpeed.length()) / 20, 1)) / Math.max(1, rSpeed.length() / 5)) * (currentGear == -1 ? -1 : 1) * 0.6);
-			wheelAngle = (float) (this.yaw + (-steerAngle * (Math.min(Math.abs(rSpeed.length()) / 20, 1)) / Math.max(1, rSpeed.length() / 5)) * (currentGear == -1 ? -1 : 1) * 0.6);
 		}
 
 		// Set gearRatio to current gear's one.
-		currentGearRatio = gearRatio[currentGear + 1];
+		currentGearRatio = gearRatio[currentGear + Math.abs(Cars.minGear)];
 
 		// NaN Check
 		if (speed != speed) {
@@ -378,7 +464,9 @@ public class Car {
 			}
 		}
 		// ---
-		G = Math.abs((new Vector(rSpeed.getX(), rSpeed.getY(), rSpeed.getZ()).subtract(lastRSpeed).length()) / 16 / (0.05 * Chars4Cars.updateDelta));
+		// G = Math.abs((new Vector(rSpeed.getX(), rSpeed.getY(),
+		// rSpeed.getZ()).subtract(lastRSpeed).length()) / 16 / (0.05 *
+		// Chars4Cars.updateDelta));
 
 		// Some code by storm345 modified to appeal more to me :)
 		BlockFace face = getFace(this.yaw);
@@ -419,7 +507,23 @@ public class Car {
 
 		if (!Chars4Cars.climbBlocks) {
 			// If car would be at climbLoc, if it would collide there
-			if (AABB.hasClimbable(climbLoc)) {
+			if (AABB.hasClimbable(climbLoc) && Math.abs(speed) > 0.1) {
+				// If car is NOT on a slab already
+				if ((this.y - ((int) this.y)) > Math.min(0.47, Chars4Cars.slabJumpVel)) {
+					if (!Cars.isSlab(climbLoc.getBlock().getType()) && Math.abs(speed) > 0.3 && !(AABB.hasSolid(overLoc))) {
+						addJumpVel(Chars4Cars.slabJumpVel);
+					}
+				} else {
+					if (AABB.hasSlab(climbLoc) && !AABB.hasSolid(overLoc)) {
+						addJumpVel(Chars4Cars.slabJumpVel);
+					} else if (!AABB.hasSolid(overLoc)) {
+						addJumpVel(Chars4Cars.stairJumpVel);
+					}
+				}
+			}
+		} else {
+			// If car would be at climbLoc, if it would collide there with blocks in the climbBlockList
+			if (AABB.hasClimbList(climbLoc) && Math.abs(speed) > 0.1) {
 				// If car is NOT on a slab already
 				if ((this.y - ((int) this.y)) > Math.min(0.47, Chars4Cars.slabJumpVel)) {
 					if (!Cars.isSlab(climbLoc.getBlock().getType()) && Math.abs(speed) > 0.3 && !(AABB.hasSolid(overLoc))) {
@@ -440,18 +544,18 @@ public class Car {
 
 		if (Chars4Cars.volume > 0) {
 			if (Math.abs(lastEngineRPM - engineRPM) > 3 || (Math.floor(Math.random() * 3) == 0 && engineRPM > 1000)) {
-				soundLoc.getWorld().playSound(car.getLocation(), Compat.MinecartRoll, (float) ((engineRPM / maxEngineRPM * 0.5) + 0.3f) * Chars4Cars.volume, (float) (engineRPM / maxEngineRPM));
+				soundLoc.getWorld().playSound(soundLoc, Compat.MinecartRoll, (float) ((engineRPM / maxEngineRPM * 0.5) + 0.3f) * Chars4Cars.volume, (float) (engineRPM / maxEngineRPM));
 			}
 			if (engineRPM > 0) {
-				soundLoc.getWorld().playSound(car.getLocation(), Compat.HorseJump, (float) ((engineRPM / maxEngineRPM * 0.25) + 0.3f) * Chars4Cars.volume, (float) (engineRPM / maxEngineRPM));
+				soundLoc.getWorld().playSound(soundLoc, Compat.HorseJump, (float) ((engineRPM / maxEngineRPM * 0.25) + 0.3f) * Chars4Cars.volume, (float) (engineRPM / maxEngineRPM));
 			}
 
 			if (engineRPM > 3000 && enginePower >= 150) {
-				soundLoc.getWorld().playSound(car.getLocation(), Compat.FireworkLaunch, (float) (((engineRPM / 3000) - 1f) * 0.45f) * Chars4Cars.volume, (float) (engineRPM / maxEngineRPM));
+				soundLoc.getWorld().playSound(soundLoc, Compat.FireworkLaunch, (float) (((engineRPM / 3000) - 1f) * 0.45f) * Chars4Cars.volume, (float) (engineRPM / maxEngineRPM));
 			}
 
 			if (engineRPM > maxEngineRPM) {
-				soundLoc.getWorld().playSound(car.getLocation(), Compat.ChestOpen, 1 * Chars4Cars.volume, 1);
+				soundLoc.getWorld().playSound(soundLoc, Compat.ChestOpen, 1 * Chars4Cars.volume, 1);
 			}
 
 			if ((car.getWorld().getBlockAt(car.getLocation()).getType().equals(Material.WATER) || car.getWorld().getBlockAt(car.getLocation()).getType().equals(Material.STATIONARY_WATER)) && engineRunning) {
@@ -509,6 +613,12 @@ public class Car {
 				scName.setScore(7);
 
 				passenger.setScoreboard(sb);
+
+				if (Chars4Cars.fixRotation) {
+					PacketContainer pc = Chars4Cars.protocolManager.createPacket(PacketType.Play.Server.ENTITY_LOOK);
+					pc.getBytes().write(0, (byte) (yaw * 256f / 360f));
+					pc.getBytes().write(1, (byte) (pitch * 256f / 360f));
+				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -555,14 +665,16 @@ public class Car {
 	 * Shift up
 	 */
 	public void shiftUp() {
-		if (rSpeed.length() < 0 && currentGear == -1) {
-		} else if (!(engineRPM == 0)) {
-			this.currentGear++;
-		}
-		if (this.currentGear > 6) {
-			this.currentGear = 6;
-		} else {
-			clutchPercent = 0;
+		if (this.engineRPM > 0) {
+			if (currentGear == -1 && rSpeed.length() != 0) {
+				return;
+			}
+			currentGear++;
+			if (this.currentGear > Cars.maxGear) {
+				this.currentGear = Cars.maxGear;
+			} else {
+				clutchPercent = 0;
+			}
 		}
 	}
 
@@ -570,19 +682,21 @@ public class Car {
 	 * Shift down
 	 */
 	public void shiftDown() {
-		if (rSpeed.length() > 0 && currentGear - 1 == -1) {
-		} else if (!(engineRPM == 0)) {
-			this.currentGear--;
-		}
-		if (this.currentGear < -1) {
-			this.currentGear = -1;
-		} else {
-			clutchPercent = 0;
+		if (this.engineRPM > 0) {
+			if (currentGear == 0 && rSpeed.length() != 0) {
+				return;
+			}
+			currentGear--;
+			if (this.currentGear < Cars.minGear) {
+				this.currentGear = Cars.maxGear;
+			} else {
+				clutchPercent = 0;
+			}
 		}
 	}
 
 	/**
-	 * @return UUID of minecart entity (called Cockpit; Entity car)
+	 * @return UUID of minecart entity (called Cockpit; Minecart car)
 	 */
 
 	public UUID getCockpitID() {
@@ -758,26 +872,39 @@ public class Car {
 		}
 	}
 
+	/**
+	 * @return Car minecart.
+	 */
 	public Minecart getCarMinecart() {
 		return car;
 	}
 
+	/**
+	 * @param yes
+	 *            If the car should notify an update with an CarUpdateEvent.
+	 */
 	public void setUpdateNotify(boolean yes) {
 		notifyUpdate = yes;
 	}
 
+	/**
+	 * @return The Location of the car.
+	 */
 	public Location getLocation() {
 		return new Location(car.getWorld(), this.x, this.y, this.z);
 	}
 
+	/**
+	 * @return The velocity of the car.
+	 */
 	public Vector getVelocity() {
 		return new Vector(this.vx, this.vy, this.vz);
 	}
 
-	public void climb() {
-
-	}
-
+	/**
+	 * @param vel
+	 *            Sets this.vy to vel.
+	 */
 	public void addJumpVel(double vel) {
 		this.vy = vel;
 	}

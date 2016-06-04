@@ -319,18 +319,22 @@ public class EventListener implements Listener {
 			if (piee.getRightClicked().getCustomName().substring(0, 16).equals("§aChars4Cars Car")) {
 				try {
 					String[] args = piee.getRightClicked().getCustomName().split(":");
-					Car theCar = new Car(UUID.fromString(args[4]), Integer.parseInt(args[2]), Integer.parseInt(args[3]), args[1], (Minecart) piee.getRightClicked(), Double.parseDouble(args[5]));
 
-					CarSpawnEvent cse = new CarSpawnEvent(theCar, theCar.getLocation(), true, piee.getPlayer());
-					Bukkit.getServer().getPluginManager().callEvent(cse);
+					if (!Cars.isCar(piee.getRightClicked().getUniqueId())) {
+						Car theCar = new Car(UUID.fromString(args[4]), Integer.parseInt(args[2]), Integer.parseInt(args[3]), args[1], (Minecart) piee.getRightClicked(), Double.parseDouble(args[5]));
 
-					if (cse.isCancelled()) {
-						theCar.remove();
-						piee.setCancelled(true);
-						return;
+						CarSpawnEvent cse = new CarSpawnEvent(theCar, theCar.getLocation(), true, piee.getPlayer());
+						Bukkit.getServer().getPluginManager().callEvent(cse);
+
+						if (cse.isCancelled()) {
+							theCar.remove();
+							piee.setCancelled(true);
+							return;
+						}
+
+						Cars.CarMap.put(piee.getRightClicked().getUniqueId(), theCar);
 					}
 
-					Cars.CarMap.put(piee.getRightClicked().getUniqueId(), theCar);
 					piee.setCancelled(true);
 				} catch (Exception e) {
 				}
@@ -463,7 +467,7 @@ public class EventListener implements Listener {
 	}
 
 	@EventHandler
-	public void carDamaged(VehicleDamageEvent vde) {
+	public void carDamage(VehicleDamageEvent vde) {
 		if (!vde.isCancelled()) {
 			try {
 				// Check if the Vehicle is a part of a car

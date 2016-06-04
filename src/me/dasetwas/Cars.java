@@ -18,7 +18,11 @@ import net.md_5.bungee.api.ChatColor;
  *
  */
 public class Cars {
-
+	public static double[] gearRatio = { -5, 0.00, 4.33, 2.67, 1.81, 1.38, 1.10, 0.91 };
+	public static char[] gearNames = { 'R', 'N', '1', '2', '3', '4', '5', '6' };
+	public static short maxGear = 6;
+	public static short minGear = -1;
+	public static double[] engineTorques = { 0.35, 0.39, 0.45, 0.56, 0.67, 0.89, 1.00, 0.95, 0.76, 0.65 };
 	public static HashMap<Integer, UUID> disposal = new HashMap<Integer, UUID>();
 	public static HashMap<UUID, Car> CarMap = new HashMap<UUID, Car>();
 
@@ -49,8 +53,6 @@ public class Cars {
 	 *         gearRatio = force)
 	 */
 	public static double[] getGearRatios() {
-		// R N 1 2 3 4 5 6
-		double[] gearRatio = { -5, 0.00, 4.33, 2.67, 1.81, 1.38, 1.10, 0.91 };
 		return gearRatio;
 	}
 
@@ -72,13 +74,10 @@ public class Cars {
 	 *         linearInterpolation)
 	 */
 	public static double[] getEngineTorques() {
-		// 1 2 3 4 5 6 7 8 9 10
-		double[] engineTorques = { 0.35, 0.39, 0.45, 0.56, 0.67, 0.89, 1.00, 0.95, 0.76, 0.65 };
 		return engineTorques;
 	}
 
 	public static char[] getGearNames() {
-		char[] gearNames = { 'R', 'N', '1', '2', '3', '4', '5', '6' };
 		return gearNames;
 	}
 

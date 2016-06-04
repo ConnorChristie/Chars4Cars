@@ -8,7 +8,7 @@ commands:
    chars4cars:
       description: Shows info about the Plugin.
       aliases: [c4c, charsforcars]
-      usage: /chars4cars <reload> | <info> | <perms>
+      usage: /chars4cars <reload> | <info> | <perms> | <stats>
    givecar:
       description: Gives you a car.
       usage: /givecar <Name> <Power> <Mass> <Fuel> [Player]

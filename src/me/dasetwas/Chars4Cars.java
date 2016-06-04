@@ -2,6 +2,7 @@ package me.dasetwas;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -73,6 +74,7 @@ public class Chars4Cars extends JavaPlugin {
 	public static String boughtFuel;
 	public static boolean scoreBoard;
 	public static int MCVersion;
+	public static boolean fixRotation;
 
 	public static double slabJumpVel = 0.3;
 	public static double stairJumpVel = 0.45;
@@ -178,8 +180,8 @@ public class Chars4Cars extends JavaPlugin {
 					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&7/givecar &a<&7name&a>&7 &a<&7power&a>&7 &a<&7mass&a>&7 &a<&7fuel&a>&7 &e[&7player&e]"));
 					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8Gives you or &e[&7player&e]&8 a car with the given properties."));
 					sender.sendMessage("");
-					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&7/c4c &a<&7info&a>&7 | &a<&7reload&a>&7 | &a<&7perms&a>"));
-					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8Reloads the plugin, shows info or shows permission nodes."));
+					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&7/c4c &a<&7info&a>&7 | &a<&7reload&a>&7 | &a<&7perms&a>&7 | &a<&7stats&a>&7"));
+					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8Reloads the plugin, shows info, shows some stats or shows permission nodes."));
 					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8When no argument is given, this info will show."));
 					sender.sendMessage("");
 					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&7/killcars &a<&7all&a>&7 | &a<&7empty&a>&7 | &a<&7soft&a>&7 | &a<&7drop&a>"));
@@ -199,7 +201,6 @@ public class Chars4Cars extends JavaPlugin {
 					sender.sendMessage(noPerm);
 				}
 			} else if (args.length > 0) {
-
 				if (args[0].equalsIgnoreCase("reload") && args.length == 1) {
 					if (sender.hasPermission("c4c.reload")) {
 						reloadConfig();
@@ -209,9 +210,9 @@ public class Chars4Cars extends JavaPlugin {
 						sender.sendMessage(noPerm);
 					}
 				} else if (args[0].equalsIgnoreCase("info") && args.length == 1) {
-					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar,"&aChars&74&aCars &8- (&7Characters for Cars&8)"));
-					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar,"       &8Made by &fDasEtwas          "));
-					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar,"          Version " + this.getDescription().getVersion()));
+					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&aChars&84&aCars &8- (&7Characters for Cars&8)"));
+					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "       &8Made by &fDasEtwas          "));
+					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "          Version " + this.getDescription().getVersion()));
 
 				} else if (args[0].equalsIgnoreCase("perms") && args.length == 1) {
 					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&a===< Chars4Cars command permissions >==="));
@@ -221,13 +222,30 @@ public class Chars4Cars extends JavaPlugin {
 					sender.sendMessage("");
 					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&7/c4c reload &8- &ac4c.reload"));
 					sender.sendMessage("");
+					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&7/c4c stats &8- &ac4c.stats"));
+					sender.sendMessage("");
 					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&7/c4c perms &8- &ac4c.perms"));
 					sender.sendMessage("");
 					sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&7/givecar &8- &ac4c.givecar"));
 					sender.sendMessage("");
 
+				} else if (args[0].equalsIgnoreCase("stats") && args.length == 1) {
+					if (sender.hasPermission("c4c.stats")) {
+						sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8Active Cars: &f" + Cars.CarMap.size()));
+						double avgSpeed = 0;
+						double avgGear = 0;
+						int i = 0;
+						for (UUID key : Cars.CarMap.keySet()) {
+							avgSpeed = ((avgSpeed * i) + Cars.CarMap.get(key).speed) / (i + 1);
+							avgGear = ((avgGear * i) + Cars.CarMap.get(key).currentGear) / (i + 1);
+						}
+						sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8Average speed: &f" + Math.floor(avgSpeed * 3.6 * 1000) / 1000) + "&8Kb/h");
+						sender.sendMessage(ChatColor.translateAlternateColorCodes(altColorChar, "&8Average gear: &f" + Math.floor(avgGear * 10) / 10));
+					} else {
+						sender.sendMessage(noPerm);
+					}
 				} else {
-					sender.sendMessage(prefix + "Usage: /c4c <info> | <reload> | <perms>");
+					sender.sendMessage(prefix + "Usage: /c4c <info> | <reload> | <perms> | <stats>");
 				}
 
 			} else {
@@ -321,8 +339,8 @@ public class Chars4Cars extends JavaPlugin {
 	/**
 	 * Loads configuration
 	 * 
-	 * @SuppressWarnings ("unchecked") because of cast from List<?> to List
-	 *                   <String>
+	 * SuppressWarnings ("unchecked") because of cast from List<?> to List
+	 * <String>
 	 */
 	@SuppressWarnings("unchecked")
 	public void loadConfig() {
@@ -349,7 +367,7 @@ public class Chars4Cars extends JavaPlugin {
 		getConfig().addDefault("info.yourCarStolen", "&k!!! &4Your car got Stolen! &r&k!!!");
 		getConfig().addDefault("info.yourCarUnlocked", "&8Your car is now unlocked.");
 		getConfig().addDefault("info.commandSuccess", "&8Command executed successfully.");
-		getConfig().addDefault("info.boughtFuel", "&8You bought &f%LT%&8L of fuel for &f%LP%&7%CS%&8 per Liter.");
+		getConfig().addDefault("info.boughtFuel", "&8You bought &f%LT%&7L&8 of fuel for &f%LP%&7%CS%&8 per Liter.");
 
 		getConfig().addDefault("game.limitToWorlds.enable", false);
 		List<String> wl = new ArrayList<String>();
@@ -374,6 +392,7 @@ public class Chars4Cars extends JavaPlugin {
 		getConfig().addDefault("game.fuel", true);
 		getConfig().addDefault("game.maxFuel", 80);
 		getConfig().addDefault("game.scoreBoard", true);
+		getConfig().addDefault("game.fixRotation", true);
 		saveConfig();
 
 		// Perm
@@ -414,6 +433,8 @@ public class Chars4Cars extends JavaPlugin {
 		fuel = getConfig().getBoolean("game.fuel");
 		maxFuel = getConfig().getDouble("game.maxFuel");
 		scoreBoard = getConfig().getBoolean("game.scoreBoard");
+		fixRotation = getConfig().getBoolean("game.fixRotation");
+
 		if (speedLimit < 1) {
 			speedLimit = 1;
 			getConfig().set("game.speedLimit", 1);

@@ -13,6 +13,7 @@ public class Compat {
 	public static Sound HorseJump;
 	public static Sound MinecartRoll;
 	public static Sound BatTakeoff;
+	public static Sound Skid;
 
 	public static void setup() {
 		if (Chars4Cars.MCVersion == 19) {

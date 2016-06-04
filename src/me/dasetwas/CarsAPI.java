@@ -52,7 +52,7 @@ public class CarsAPI {
 	 *            Name of Car
 	 * @param mass
 	 *            Mass of Car
-	 * @param power
+	 * @param enginePower
 	 *            Power of Car
 	 * @param fuel
 	 *            Fuel of Car
@@ -61,8 +61,8 @@ public class CarsAPI {
 	 *            update it, you can then do it yourself.
 	 * @return Car object
 	 */
-	public Car createCar(Location spawnLocation, String name, int enginePower, int carMass, double fuel, boolean ghost) {
-		Car car = new Car(carMass, spawnLocation, null, carMass, carMass, name, fuel);
+	public Car createCar(Location spawnLocation, String name, int enginePower, int mass, double fuel, boolean ghost) {
+		Car car = new Car(mass, spawnLocation, null, mass, mass, name, fuel);
 
 		Bukkit.getServer().getPluginManager().callEvent(new CarSpawnEvent(car, spawnLocation, false, null));
 
@@ -80,13 +80,13 @@ public class CarsAPI {
 	 *            Name of Car
 	 * @param mass
 	 *            Mass of Car
-	 * @param power
+	 * @param enginePower
 	 *            Power of Car
 	 * @param fuel
 	 *            Fuel of Car
 	 * @return ItemStack of created car, like in /givecar x x x x
 	 */
-	public ItemStack createCar(String name, int enginePower, int carMass, double fuel) {
-		return CarGetter.createCar(name, enginePower, carMass, fuel);
+	public ItemStack createCar(String name, int enginePower, int mass, double fuel) {
+		return CarGetter.createCar(name, enginePower, mass, fuel);
 	}
 }

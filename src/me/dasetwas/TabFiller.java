@@ -19,6 +19,7 @@ public class TabFiller implements TabCompleter {
 				list.add("info");
 				list.add("reload");
 				list.add("perms");
+				list.add("stats");
 				list.add(" ");
 				return list;
 			}
