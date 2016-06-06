@@ -22,6 +22,7 @@ public class Cars {
 	public static char[] gearNames = { 'R', 'N', '1', '2', '3', '4', '5', '6' };
 	public static short maxGear = 6;
 	public static short minGear = -1;
+	public static float tireSlipThreshold = 1300; // N
 	public static double[] engineTorques = { 0.35, 0.39, 0.45, 0.56, 0.67, 0.89, 1.00, 0.95, 0.76, 0.65 };
 	public static HashMap<Integer, UUID> disposal = new HashMap<Integer, UUID>();
 	public static HashMap<UUID, Car> CarMap = new HashMap<UUID, Car>();

@@ -163,9 +163,20 @@ public class Car {
 	double hitBoxX = 0;
 	double hitBoxZ = 0;
 	/**
+	 * Slip factor
+	 */
+	double slipFactor;
+	/**
 	 * Actual vector of the car's velocity.
 	 */
 	Vector rSpeed = new Vector(), lastRSpeed = rSpeed;
+	int minGear = Cars.minGear, maxGear = Cars.maxGear;
+	/**
+	 * Maximum force of the tires before losing traction
+	 */
+	float tireSlipThreshold = Cars.tireSlipThreshold;
+	float lastYaw;
+	float sideAccel;
 
 	/**
 	 * Car constructor
@@ -198,10 +209,10 @@ public class Car {
 		car = (Minecart) spawnLocation.getWorld().spawnEntity(new Location(spawnLocation.getWorld(), x, y, z), EntityType.MINECART);
 
 		car.setCustomName("§aChars4Cars Car:" + name + ":" + enginePower + ":" + mass + ":" + owner + ":" + fuel);
+		car.setMaxSpeed(1000);
 		car.setDerailedVelocityMod(new Vector(1, 1, 1));
 		car.setFlyingVelocityMod(new Vector(1, 1, 1));
 		car.setSlowWhenEmpty(false);
-		car.setMaxSpeed(((double) Chars4Cars.speedLimit) / 3.6 / 20);
 		car.setDisplayBlock(new MaterialData(Material.BARRIER));
 
 		car.teleport(new Location(spawnLocation.getWorld(), x, y, z, yaw - 90, 0));
@@ -231,10 +242,10 @@ public class Car {
 		this.fuel = fuel;
 
 		car.setCustomName("§aChars4Cars Car:" + name + ":" + enginePower + ":" + mass + ":" + owner + ":" + fuel);
+		car.setMaxSpeed(1000);
 		car.setDerailedVelocityMod(new Vector(1, 1, 1));
 		car.setFlyingVelocityMod(new Vector(1, 1, 1));
 		car.setSlowWhenEmpty(false);
-		car.setMaxSpeed(((double) Chars4Cars.speedLimit) / 3.6 / 20);
 		car.setDisplayBlock(new MaterialData(Material.BARRIER));
 
 		this.cockpitID = car.getUniqueId();
@@ -328,7 +339,10 @@ public class Car {
 		} else {
 			brake = 0.1f;
 			engineRunning = false;
-			currentGear = 0;
+			if (rSpeed.length() == 0) {
+				currentGear = 0;
+			}
+
 			throttle = 0;
 			passenger = null;
 		}
@@ -352,11 +366,14 @@ public class Car {
 		}
 
 		if (isOnGround()) {
-			this.yaw = (float) (this.yaw + (-steerAngle * (Math.min(Math.abs(rSpeed.length()) / 20, 1)) / Math.max(1, rSpeed.length() / 5)) * (currentGear == -1 ? -1 : 1) * 0.6);
+			// this.yaw = (float) (this.yaw + (-steerAngle *
+			// (Math.min(Math.abs(rSpeed.length()) / 20, 1)) / Math.max(1,
+			// rSpeed.length() / 5)) * (currentGear == -1 ? -1 : 1) * 0.6);
+			this.yaw = (float) (this.yaw - steerAngle * (currentGear == -1 ? -1 : 1) * 0.13);
 		}
 
 		// Set gearRatio to current gear's one.
-		currentGearRatio = gearRatio[currentGear + Math.abs(Cars.minGear)];
+		currentGearRatio = gearRatio[currentGear + Math.abs(minGear)];
 
 		// NaN Check
 		if (speed != speed) {
@@ -566,7 +583,7 @@ public class Car {
 			ParticleEffect.SMOKE_NORMAL.display(flyVec, 0.4f, exhaustLoc, 20.0);
 		}
 
-		// Print debug information
+		// Print information
 		try {
 			if (passenger != null && Chars4Cars.scoreBoard) {
 				try {
@@ -608,14 +625,44 @@ public class Car {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+		}
+
+		if (Math.abs(speed) > Chars4Cars.speedLimit / 3.6) {
+			if (speed < 0) {
+				speed = Chars4Cars.speedLimit * -1;
+			} else {
+				speed = Chars4Cars.speedLimit;
+			}
 		}
 
 		// Calculate car's speed
 		if (isOnGround()) {
 			if (Math.abs(speed) > 0) {
-				this.vx = rotateScalar(speed, this.yaw).getX() / 20;
-				this.vz = rotateScalar(speed, this.yaw).getZ() / 20;
+				slipFactor = 0;
+				sideAccel = (float) rotateScalar(speed, yaw).distance(rotateScalar(speed, lastYaw));
+
+				if ((engineAcc + brakeAcc) * mass > tireSlipThreshold) {
+					slipFactor = Math.max(slipFactor, 0.8);
+				} else {
+					slipFactor += brake * 0.13;
+				}
+
+				slipFactor += Math.abs(steerAngle) / 25 * 0.03 * sideAccel;
+
+				if (mass * sideAccel > tireSlipThreshold * 2) {
+					slipFactor = Math.max(slipFactor, 0.6);
+				}
+
+				slipFactor = Math.min(1, Math.max(0, slipFactor));
+
+				Vector rSpeedCopy = new Vector();
+				rSpeedCopy.copy(rSpeed);
+				rSpeedCopy.multiply(slipFactor / 20);
+				Vector preferedSpeed = rotateScalar(speed / 20 * (1 - slipFactor), yaw);
+				preferedSpeed.setY(this.vy);
+				Vector finalSpeed = rSpeedCopy.add(preferedSpeed);
+				this.vx = finalSpeed.getX();
+				this.vz = finalSpeed.getZ();
 			} else {
 				this.vx = 0;
 				this.vz = 0;
@@ -629,15 +676,17 @@ public class Car {
 			this.vz = 0;
 		}
 
-		// set car's speed
+		// Set car's speed
 		car.setVelocity(new Vector(this.vx, this.vy, this.vz));
 
-		// to know engineRPM's velocity
+		// to know engineRPM's rate
 		lastEngineRPM = engineRPM;
 		// to know acceleration
 		lastSpeed = speed;
 		lastRSpeed = rSpeed;
 		lastG = G;
+		// to know side acceleration
+		lastYaw = yaw;
 
 		car.setCustomName("§aChars4Cars Car:" + name + ":" + enginePower + ":" + mass + ":" + owner + ":" + fuel);
 		// *=*=*=*
@@ -657,8 +706,8 @@ public class Car {
 				return;
 			}
 			currentGear++;
-			if (this.currentGear > Cars.maxGear) {
-				this.currentGear = Cars.maxGear;
+			if (this.currentGear > maxGear) {
+				this.currentGear = maxGear;
 			} else {
 				clutchPercent = 0;
 			}
@@ -674,8 +723,8 @@ public class Car {
 				return;
 			}
 			currentGear--;
-			if (this.currentGear < Cars.minGear) {
-				this.currentGear = Cars.minGear;
+			if (this.currentGear < minGear) {
+				this.currentGear = minGear;
 			} else {
 				clutchPercent = 0;
 			}

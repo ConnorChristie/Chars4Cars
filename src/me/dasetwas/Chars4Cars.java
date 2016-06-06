@@ -44,7 +44,7 @@ public class Chars4Cars extends JavaPlugin {
 	public static String yourCarStolen;
 	public static String notOnline;
 	public static String noFuelBuySelf;
-	public static String PREFIX = ChatColor.translateAlternateColorCodes(altColorChar, "&7[&aC&84&aC&7]&r ");
+	public static final String PREFIX = ChatColor.translateAlternateColorCodes(altColorChar, "&7[&aC&84&aC&7]&r ");
 	public static int ppp = 0;
 	public static String yourCarDamaged;
 	public static boolean fuel;
@@ -78,6 +78,7 @@ public class Chars4Cars extends JavaPlugin {
 
 	public static double slabJumpVel = 0.3;
 	public static double stairJumpVel = 0.45;
+	public static String noPlace;
 
 	@Override
 	public void onEnable() {
@@ -358,6 +359,7 @@ public class Chars4Cars extends JavaPlugin {
 		getConfig().addDefault("warn.doNotOwnCarLock", "&4You can't lock that car.");
 		getConfig().addDefault("warn.noEnterCarLocked", "&8That car is locked.");
 		getConfig().addDefault("warn.noPlaceRails", "&8You can't place a car on rails.");
+		getConfig().addDefault("warn.noPlace", "&8You can't place a car here.");
 		getConfig().addDefault("warn.invalidFuelStation", "&7That's not a valid Fuel Station.");
 		getConfig().addDefault("warn.noFuelBuySelf", "&8You can't buy fuel from yourself!");
 		getConfig().addDefault("info.owner", "&8Owner: &r");
@@ -406,6 +408,7 @@ public class Chars4Cars extends JavaPlugin {
 		doNotOwnCarLock = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("warn.doNotOwnCarLock"));
 		noEnterCarLocked = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("warn.noEnterCarLocked"));
 		noPlaceRails = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("warn.noPlaceRails"));
+		noPlace = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("warn.noPlace"));
 		invalidFuelStation = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("warn.invalidFuelStation"));
 		noFuelBuySelf = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("warn.noFuelBuySelf"));
 		owner = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("info.owner"));

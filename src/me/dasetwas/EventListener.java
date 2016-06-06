@@ -264,7 +264,12 @@ public class EventListener implements Listener {
 								UUID uuid = newCar.getCockpitID();
 								Cars.CarMap.put(uuid, newCar);
 							} else {
-								pie.getPlayer().sendMessage(Chars4Cars.PREFIX + Chars4Cars.noPlaceRails);
+								if (Cars.isRail(pie.getClickedBlock().getType())) {
+									pie.getPlayer().sendMessage(Chars4Cars.PREFIX + Chars4Cars.noPlaceRails);
+								} else {
+									pie.getPlayer().sendMessage(Chars4Cars.PREFIX + Chars4Cars.noPlace);
+								}
+								
 								pie.setCancelled(true);
 							}
 						}
@@ -510,28 +515,29 @@ public class EventListener implements Listener {
 					}
 				} else {
 					if (vde.getVehicle().getCustomName() != null) {
-					if (vde.getVehicle().getCustomName().substring(0, 16).equals("§aChars4Cars Car")) {
-						try {
-							String[] args = vde.getVehicle().getCustomName().split(":");
+						if (vde.getVehicle().getCustomName().substring(0, 16).equals("§aChars4Cars Car")) {
+							try {
+								String[] args = vde.getVehicle().getCustomName().split(":");
 
-							if (vde.getAttacker().getType().equals(EntityType.PLAYER)) {
-								Player damager = (Player) vde.getAttacker();
+								if (vde.getAttacker().getType().equals(EntityType.PLAYER)) {
+									Player damager = (Player) vde.getAttacker();
 
-								if (!damager.getUniqueId().equals(UUID.fromString(args[4]))) {
-									if (!damager.hasPermission("c4c.owneroverride")) {
-										vde.setCancelled(true);
-										damager.sendMessage(Chars4Cars.PREFIX + Chars4Cars.doNotOwnCar);
-										damager.sendMessage(Chars4Cars.PREFIX + Chars4Cars.owner + Bukkit.getServer().getPlayer(UUID.fromString(args[4])).getName());
-									} else {
-										damager.sendMessage(Chars4Cars.PREFIX + Chars4Cars.doNotOwnCar);
-										damager.sendMessage(Chars4Cars.PREFIX + Chars4Cars.owner + Bukkit.getServer().getPlayer(UUID.fromString(args[4])).getName());
-										Bukkit.getServer().getPlayer(UUID.fromString(args[4])).sendMessage(Chars4Cars.PREFIX + Chars4Cars.yourCarDamaged);
+									if (!damager.getUniqueId().equals(UUID.fromString(args[4]))) {
+										if (!damager.hasPermission("c4c.owneroverride")) {
+											vde.setCancelled(true);
+											damager.sendMessage(Chars4Cars.PREFIX + Chars4Cars.doNotOwnCar);
+											damager.sendMessage(Chars4Cars.PREFIX + Chars4Cars.owner + Bukkit.getServer().getPlayer(UUID.fromString(args[4])).getName());
+										} else {
+											damager.sendMessage(Chars4Cars.PREFIX + Chars4Cars.doNotOwnCar);
+											damager.sendMessage(Chars4Cars.PREFIX + Chars4Cars.owner + Bukkit.getServer().getPlayer(UUID.fromString(args[4])).getName());
+											Bukkit.getServer().getPlayer(UUID.fromString(args[4])).sendMessage(Chars4Cars.PREFIX + Chars4Cars.yourCarDamaged);
+										}
 									}
 								}
+							} catch (Exception e) {
 							}
-						} catch (Exception e) {
 						}
-					}}
+					}
 				}
 
 			} catch (Exception e) {
