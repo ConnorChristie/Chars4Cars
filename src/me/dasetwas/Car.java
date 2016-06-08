@@ -443,10 +443,10 @@ public class Car {
 			// Check if the RPM limiter has to kick in
 			if (engineRPM > maxEngineRPM) {
 				if (currentGear == -1) {
-					speed = maxEngineRPM / currentGearRatio * driveWheelCircumference / differentialRatio / 60;
+					speed = Math.min(speed, maxEngineRPM / currentGearRatio * driveWheelCircumference / differentialRatio / 60);
 					engineAcc = 0;
 				} else {
-					speed = maxEngineRPM / currentGearRatio * driveWheelCircumference / differentialRatio / 60;
+					speed = Math.min(speed, maxEngineRPM / currentGearRatio * driveWheelCircumference / differentialRatio / 60);
 				}
 
 			}
