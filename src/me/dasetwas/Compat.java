@@ -8,12 +8,12 @@ import org.bukkit.inventory.PlayerInventory;
 public class Compat {
 
 	public static Sound FireExtinguish;
-	public static Sound ChestOpen;
+	public static Sound ChestClose;
 	public static Sound FireworkLaunch;
 	public static Sound HorseJump;
 	public static Sound MinecartRoll;
 	public static Sound BatTakeoff;
-	public static Sound Skid;
+	public static Sound Pop;
 
 	public static void setup() {
 		if (Chars4Cars.MCVersion == 19) {
@@ -38,11 +38,12 @@ public class Compat {
 	private static void setSounds19() {
 		try {
 			FireExtinguish = Sound.valueOf("BLOCK_LAVA_EXTINGUISH");
-			ChestOpen = Sound.valueOf("BLOCK_CHEST_OPEN");
+			ChestClose = Sound.valueOf("BLOCK_CHEST_CLOSE");
 			FireworkLaunch = Sound.valueOf("ENTITY_FIREWORK_LAUNCH");
 			HorseJump = Sound.valueOf("ENTITY_HORSE_JUMP");
 			MinecartRoll = Sound.valueOf("ENTITY_MINECART_RIDING");
 			BatTakeoff = Sound.valueOf("ENTITY_BAT_TAKEOFF");
+			Pop = Sound.valueOf("BLOCK_LAVA_POP");
 		} catch (Exception e) {
 		}
 	}
@@ -50,11 +51,12 @@ public class Compat {
 	private static void setSounds18() {
 		try {
 			FireExtinguish = Sound.valueOf("FIZZ");
-			ChestOpen = Sound.valueOf("CHEST_OPEN");
+			ChestClose = Sound.valueOf("CHEST_CLOSE");
 			FireworkLaunch = Sound.valueOf("FIREWORK_LAUNCH");
 			HorseJump = Sound.valueOf("HORSE_JUMP");
 			MinecartRoll = Sound.valueOf("MINECART_BASE");
 			BatTakeoff = Sound.valueOf("BAT_TAKEOFF");
+			Pop = Sound.valueOf("LAVA_POP");
 		} catch (Exception e) {
 		}
 	}

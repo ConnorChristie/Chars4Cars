@@ -84,14 +84,16 @@ public class AABB {
 		}
 		return false;
 	}
-	
+
 	public static boolean hasClimbList(Location loc) {
 		int i = 0;
 		Material[] types = collide(loc);
 
 		for (i = 0; i < 4; i++) {
-			if (Chars4Cars.climbBlocksList.contains(types[i].toString().toUpperCase())) {
-				return true;
+			if (Chars4Cars.climbBlocksList != null) {
+				if (Chars4Cars.climbBlocksList.contains(types[i].toString().toUpperCase())) {
+					return true;
+				}
 			}
 		}
 		return false;

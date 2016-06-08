@@ -70,7 +70,7 @@ public class Car {
 	 * Percentage of the movement key controls. Updated onPacketReceive. Front
 	 * left is 1,1
 	 */
-	float forw, side;
+	float forw = 0, side = 0;
 	/**
 	 * Scoreboard for displaying statistics.
 	 */
@@ -102,7 +102,7 @@ public class Car {
 	/**
 	 * Brake and Throttle pedal percentage. 1 = 100%
 	 */
-	float brake, throttle;
+	float brake = 0, throttle = 0;
 	/**
 	 * Acceleration of car contributed by the engine or brake. Seperate.
 	 */
@@ -119,7 +119,7 @@ public class Car {
 	/**
 	 * Current speed and speed of last update. vy is ignored.
 	 */
-	double speed, lastSpeed;
+	double speed = 0, lastSpeed = 0;
 	/**
 	 * Current gear.
 	 */
@@ -209,7 +209,7 @@ public class Car {
 		car = (Minecart) spawnLocation.getWorld().spawnEntity(new Location(spawnLocation.getWorld(), x, y, z), EntityType.MINECART);
 
 		car.setCustomName("§aChars4Cars Car:" + name + ":" + enginePower + ":" + mass + ":" + owner + ":" + fuel);
-		car.setMaxSpeed(1000);
+		car.setMaxSpeed(1260);
 		car.setDerailedVelocityMod(new Vector(1, 1, 1));
 		car.setFlyingVelocityMod(new Vector(1, 1, 1));
 		car.setSlowWhenEmpty(false);
@@ -242,7 +242,7 @@ public class Car {
 		this.fuel = fuel;
 
 		car.setCustomName("§aChars4Cars Car:" + name + ":" + enginePower + ":" + mass + ":" + owner + ":" + fuel);
-		car.setMaxSpeed(1000);
+		car.setMaxSpeed(1260);
 		car.setDerailedVelocityMod(new Vector(1, 1, 1));
 		car.setFlyingVelocityMod(new Vector(1, 1, 1));
 		car.setSlowWhenEmpty(false);
@@ -369,7 +369,7 @@ public class Car {
 			// this.yaw = (float) (this.yaw + (-steerAngle *
 			// (Math.min(Math.abs(rSpeed.length()) / 20, 1)) / Math.max(1,
 			// rSpeed.length() / 5)) * (currentGear == -1 ? -1 : 1) * 0.6);
-			this.yaw = (float) (this.yaw - steerAngle * (currentGear == -1 ? -1 : 1) * 0.13);
+			this.yaw = (float) (this.yaw - (steerAngle * (currentGear == -1 ? -1 : 1) * 0.13));
 		}
 
 		// Set gearRatio to current gear's one.
@@ -413,7 +413,7 @@ public class Car {
 
 			// Prevent engine from overshooting maxEngineRPM (rev limiter)
 			engineRPM = Math.min(engineRPM, maxEngineRPM);
-			brakeAcc = brake * 0.58;
+			brakeAcc = brake * 0.78;
 
 			speed = subUntilZero(speed, brakeAcc);
 
@@ -428,16 +428,17 @@ public class Car {
 			clutchPercent = 0;
 		} else {
 			double d = throttle * maxEngineRPM - engineRPM;
+			double combinedPercent = Math.min(1, Math.max(0, clutchPercent - slipFactor * 0.25));
 
-			engineRPM = Math.abs((speed / driveWheelCircumference) * currentGearRatio * 60 * differentialRatio) * clutchPercent + (engineRPM + (d * 0.05)) * (1 - clutchPercent);
+			engineRPM = Math.abs((speed / driveWheelCircumference) * currentGearRatio * 60 * differentialRatio) * combinedPercent + (engineRPM + (d * 0.05)) * (1 - combinedPercent);
 
 			// Get torque of engine
 			if (engineRPM < 800) {
 				engineRPM = 800 + Math.random() * 10;
 			}
 
-			engineAcc = getEngineTorque() * enginePower * throttle * clutchPercent * currentGearRatio * differentialRatio / driveWheelCircumference / (mass + fuel);
-			brakeAcc = brake * 0.58;
+			engineAcc = getEngineTorque() * enginePower * throttle * combinedPercent * currentGearRatio * differentialRatio / driveWheelCircumference / (mass + fuel);
+			brakeAcc = brake * 0.78;
 
 			// Check if the RPM limiter has to kick in
 			if (engineRPM > maxEngineRPM) {
@@ -445,7 +446,7 @@ public class Car {
 					speed = maxEngineRPM / currentGearRatio * driveWheelCircumference / differentialRatio / 60;
 					engineAcc = 0;
 				} else {
-					speed = subUntilZero(speed, engineAcc * 2);
+					speed = maxEngineRPM / currentGearRatio * driveWheelCircumference / differentialRatio / 60;
 				}
 
 			}
@@ -468,7 +469,7 @@ public class Car {
 			}
 		}
 		// ---
-		G = Math.abs((new Vector(rSpeed.getX(), rSpeed.getY(), rSpeed.getZ()).subtract(lastRSpeed).length()) / 16 / (0.05 * Chars4Cars.updateDelta));
+		G = Math.abs((new Vector(rSpeed.getX(), rSpeed.getY(), rSpeed.getZ()).subtract(lastRSpeed).length()) / 32 / (0.05 * Chars4Cars.updateDelta));
 
 		// Some code by storm345 modified to appeal more to me :)
 		BlockFace face = getFace(this.yaw);
@@ -546,7 +547,6 @@ public class Car {
 		soundLoc = new Location(car.getWorld(), this.x + this.vx, this.y + this.vy, this.z + this.vz);
 
 		if (Chars4Cars.volume > 0) {
-
 			if (Math.abs(lastEngineRPM - engineRPM) > 3 || (Math.floor(Math.random() * 3) == 0 && engineRPM > 1000)) {
 				soundLoc.getWorld().playSound(soundLoc, Compat.MinecartRoll, (float) ((engineRPM / maxEngineRPM * 0.5) + 0.3f) * Chars4Cars.volume, (float) (engineRPM / maxEngineRPM));
 			}
@@ -557,9 +557,12 @@ public class Car {
 			if (engineRPM > 3000 && enginePower >= 150) {
 				soundLoc.getWorld().playSound(soundLoc, Compat.FireworkLaunch, (float) (((engineRPM / 3000) - 1f) * 0.45f) * Chars4Cars.volume, (float) (engineRPM / maxEngineRPM));
 			}
+			if (engineRPM > 2000 && enginePower >= 200) {
+				soundLoc.getWorld().playSound(soundLoc, Compat.Pop, (float) (((engineRPM / 3000) - 1f) * 0.78f) * Chars4Cars.volume, (float) (engineRPM / maxEngineRPM));
+			}
 
 			if (engineRPM > maxEngineRPM) {
-				soundLoc.getWorld().playSound(soundLoc, Compat.ChestOpen, 1 * Chars4Cars.volume, 1.4f);
+				soundLoc.getWorld().playSound(soundLoc, Compat.ChestClose, 1.3f * Chars4Cars.volume, 1.8f);
 			}
 
 			if ((car.getWorld().getBlockAt(car.getLocation()).getType().equals(Material.WATER) || car.getWorld().getBlockAt(car.getLocation()).getType().equals(Material.STATIONARY_WATER)) && engineRunning) {
@@ -580,7 +583,7 @@ public class Car {
 		if (Chars4Cars.exhaustSmoke && engineRPM > 400) {
 			Vector flyVec = new Vector(rotateScalar(0.2, yaw + 180).getX(), 0.06 + Math.random() / 2, rotateScalar(0.2, yaw + 180).getZ());
 			Location exhaustLoc = new Location(car.getWorld(), this.x + rotateScalar(0.8, yaw + 180).getX() - this.vx * 7, this.y + 0.1, this.z + rotateScalar(0.8, yaw + 180).getZ() - this.vz * 7);
-			ParticleEffect.SMOKE_NORMAL.display(flyVec, 0.4f, exhaustLoc, 20.0);
+			ParticleEffect.SMOKE_NORMAL.display(flyVec, 0.4f, exhaustLoc, 60.0);
 		}
 
 		// Print information
@@ -589,32 +592,30 @@ public class Car {
 				try {
 					sb.getObjective("stats").unregister();
 				} catch (Exception e) {
-
 				}
+
 				Objective stats = sb.registerNewObjective("stats", "dummy");
 				stats.setDisplaySlot(DisplaySlot.SIDEBAR);
-				stats.setDisplayName("Statistics");
+				stats.setDisplayName(ChatColor.DARK_GRAY + "--== " + ChatColor.GREEN + "Car" + ChatColor.DARK_GRAY + ": " + ChatColor.RESET + name + ChatColor.DARK_GRAY + " ==--");
 
-				Score scSpeed = stats.getScore("Speed: " + ((int) (speed * 3.6)) + "Kb/h");
-				Score scEngineRPM = stats.getScore("Engine RPM: " + ((int) engineRPM));
-				Score scCurrentGear = stats.getScore("Gear: " + gearNames[currentGear + 1]);
 				Score scThrottle = stats.getScore("Throttle: " + (int) Math.floor(throttle * 100) + "%");
 				Score scBrake = stats.getScore("Brake: " + (int) Math.floor(brake * 100) + "%");
-				Score scG = stats.getScore("G Force: " + (float) Math.floor((lastG + G) / 2 * 100) / 100 + "*32m/s²");
-				Score scName = stats.getScore(ChatColor.DARK_GRAY + "--==" + ChatColor.GREEN + " Car" + ChatColor.DARK_GRAY + ": " + ChatColor.RESET + name + ChatColor.DARK_GRAY + " ==--");
+				Score scG = stats.getScore("G: " + (float) Math.floor((lastG + G) / 2 * 100) / 100 + "*32m/s²");
+				Score scEngineRPM = stats.getScore("RPM: " + ((int) engineRPM));
+				Score scSpeed = stats.getScore("Speed: " + ((int) (speed * 3.6)) + "Kb/h");
+				Score scCurrentGear = stats.getScore("Gear: " + gearNames[currentGear + Math.abs(minGear)]);
 
 				if (Chars4Cars.fuel) {
 					Score scFuel = stats.getScore("Fuel: " + Math.floor(fuel * 100) / 100);
 					scFuel.setScore(0);
 				}
 
-				scSpeed.setScore(1);
+				scThrottle.setScore(5);
+				scBrake.setScore(4);
+				scG.setScore(3);
 				scEngineRPM.setScore(2);
-				scCurrentGear.setScore(3);
-				scThrottle.setScore(4);
-				scBrake.setScore(5);
-				scG.setScore(6);
-				scName.setScore(7);
+				scSpeed.setScore(1);
+				scCurrentGear.setScore(0);
 
 				passenger.setScoreboard(sb);
 
@@ -641,13 +642,13 @@ public class Car {
 				slipFactor = 0;
 				sideAccel = (float) rotateScalar(speed, yaw).distance(rotateScalar(speed, lastYaw));
 
-				if ((engineAcc + brakeAcc) * mass > tireSlipThreshold) {
-					slipFactor = Math.max(slipFactor, 0.8);
+				if ((rSpeed.distance(lastRSpeed)) * mass > tireSlipThreshold) {
+					slipFactor = 0.8;
 				} else {
-					slipFactor += brake * 0.13;
+					slipFactor = brake * 0.09;
 				}
 
-				slipFactor += Math.abs(steerAngle) / 25 * 0.03 * sideAccel;
+				slipFactor += sideAccel * 0.06;
 
 				if (mass * sideAccel > tireSlipThreshold * 2) {
 					slipFactor = Math.max(slipFactor, 0.6);
@@ -659,7 +660,6 @@ public class Car {
 				rSpeedCopy.copy(rSpeed);
 				rSpeedCopy.multiply(slipFactor / 20);
 				Vector preferedSpeed = rotateScalar(speed / 20 * (1 - slipFactor), yaw);
-				preferedSpeed.setY(this.vy);
 				Vector finalSpeed = rSpeedCopy.add(preferedSpeed);
 				this.vx = finalSpeed.getX();
 				this.vz = finalSpeed.getZ();
@@ -674,6 +674,11 @@ public class Car {
 			// Stop the car
 			this.vx = 0;
 			this.vz = 0;
+		}
+		
+		if (notifyUpdate) {
+			CarUpdateEvent cue = new CarUpdateEvent(this);
+			Bukkit.getServer().getPluginManager().callEvent(cue);
 		}
 
 		// Set car's speed
@@ -691,10 +696,7 @@ public class Car {
 		car.setCustomName("§aChars4Cars Car:" + name + ":" + enginePower + ":" + mass + ":" + owner + ":" + fuel);
 		// *=*=*=*
 
-		if (notifyUpdate) {
-			CarUpdateEvent cue = new CarUpdateEvent(this);
-			Bukkit.getServer().getPluginManager().callEvent(cue);
-		}
+		
 	}
 
 	/**

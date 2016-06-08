@@ -421,7 +421,7 @@ public class Chars4Cars extends JavaPlugin {
 		boughtFuel = ChatColor.translateAlternateColorCodes(altColorChar, getConfig().getString("info.boughtFuel"));
 
 		climbBlocks = getConfig().getBoolean("game.climbBlocks.enable");
-		climbBlocksList = (List<String>) getConfig().getList("climbBlocks.climb");
+		climbBlocksList = (List<String>) getConfig().getList("game.climbBlocks.climb");
 		climbBlockSearchFactor = (float) getConfig().getDouble("game.climbBlocks.searchFactor");
 		defaultPower = getConfig().getInt("game.defaultPower");
 		defaultMass = getConfig().getInt("game.defaultMass");
