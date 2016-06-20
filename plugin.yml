@@ -1,13 +1,13 @@
 main: me.dasetwas.Chars4Cars
 name: Chars4Cars
-version: 1.1
+version: 1.0
 author: DasEtwas
 description: Lets you drive cars in Minecraft!
 
 commands:
    chars4cars:
       description: Shows info about the Plugin.
-      aliases: [c4c, charsforcars]
+      aliases: [c4c]
       usage: /chars4cars <reload> | <info> | <perms> | <stats>
    givecar:
       description: Gives you a car.

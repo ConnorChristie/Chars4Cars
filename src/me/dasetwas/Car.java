@@ -28,7 +28,7 @@ import me.dasetwas.event.CarUpdateEvent;
  *
  */
 public class Car {
-
+	
 	// Minecraft
 	/**
 	 * The UUID of the owner of the car.
@@ -404,7 +404,7 @@ public class Car {
 				// If engine cycle collapses, play shutoff sound
 				if (engineRPM <= 250 && engineRPM != 0) {
 					engineRPM = 0;
-					car.getLocation().getWorld().playSound(car.getLocation(), Compat.BatTakeoff, 0.5f * Chars4Cars.volume, 0.5f);
+					car.getLocation().getWorld().playSound(car.getLocation(), Compat.Shutoff, 0.5f * Chars4Cars.volume, 0.5f);
 				}
 			}
 			if (brake == 1) {
@@ -442,13 +442,7 @@ public class Car {
 
 			// Check if the RPM limiter has to kick in
 			if (engineRPM > maxEngineRPM) {
-				if (currentGear == -1) {
-					speed = Math.min(speed, maxEngineRPM / currentGearRatio * driveWheelCircumference / differentialRatio / 60);
-					engineAcc = 0;
-				} else {
-					speed = Math.min(speed, maxEngineRPM / currentGearRatio * driveWheelCircumference / differentialRatio / 60);
-				}
-
+				engineAcc = -enginePower * currentGearRatio * differentialRatio / driveWheelCircumference / mass * 0.5;
 			}
 
 			speed = subUntilZero(speed, brakeAcc);
@@ -547,29 +541,25 @@ public class Car {
 		soundLoc = new Location(car.getWorld(), this.x + this.vx, this.y + this.vy, this.z + this.vz);
 
 		if (Chars4Cars.volume > 0) {
-			if (Math.abs(lastEngineRPM - engineRPM) > 3 || (Math.floor(Math.random() * 3) == 0 && engineRPM > 1000)) {
-				soundLoc.getWorld().playSound(soundLoc, Compat.MinecartRoll, (float) ((engineRPM / maxEngineRPM * 0.5) + 0.3f) * Chars4Cars.volume, (float) (engineRPM / maxEngineRPM));
+			if ((Math.floor(Math.random() * 3) == 0) && engineRPM > 0) {
+				soundLoc.getWorld().playSound(soundLoc, Compat.Idle, (float) ((float) ((engineRPM / maxEngineRPM * 0.5) + 0.3f) * Chars4Cars.volume * Math.max(0.6, 1 - Math.min(1, engineRPM / 3000))), (float)  engineRPM / maxEngineRPM);
 			}
 			if (engineRPM > 0) {
-				soundLoc.getWorld().playSound(soundLoc, Compat.HorseJump, (float) ((engineRPM / maxEngineRPM * 0.25) + 0.3f) * Chars4Cars.volume, (float) (engineRPM / maxEngineRPM));
+				soundLoc.getWorld().playSound(soundLoc, Compat.Run, (float) ((float) ((engineRPM / maxEngineRPM * 0.25) + 0.3f) * Chars4Cars.volume * Math.max(0.1, Math.min(0.8, engineRPM / 3000))), (float) engineRPM / maxEngineRPM);
 			}
 
 			if (engineRPM > 3000 && enginePower >= 150) {
-				soundLoc.getWorld().playSound(soundLoc, Compat.FireworkLaunch, (float) (((engineRPM / 3000) - 1f) * 0.45f) * Chars4Cars.volume, (float) (engineRPM / maxEngineRPM));
+				soundLoc.getWorld().playSound(soundLoc, Compat.Turbo, (float) (((engineRPM / 3000) - 1f) * 0.45f) * Chars4Cars.volume, (float) (engineRPM / maxEngineRPM));
 			}
 			if (engineRPM > 2000 && enginePower >= 200) {
 				soundLoc.getWorld().playSound(soundLoc, Compat.Pop, (float) (((engineRPM / 3000) - 1f) * 0.78f) * Chars4Cars.volume, (float) (engineRPM / maxEngineRPM));
-			}
-
-			if (engineRPM > maxEngineRPM) {
-				soundLoc.getWorld().playSound(soundLoc, Compat.ChestClose, 1.3f * Chars4Cars.volume, 1.8f);
 			}
 
 			if ((car.getWorld().getBlockAt(car.getLocation()).getType().equals(Material.WATER) || car.getWorld().getBlockAt(car.getLocation()).getType().equals(Material.STATIONARY_WATER)) && engineRunning) {
 				engineRunning = false;
 				engineRPM = 0;
 				car.eject();
-				soundLoc.getWorld().playSound(soundLoc, Compat.FireExtinguish, 1, 1);
+				soundLoc.getWorld().playSound(soundLoc, Compat.Drown, 1, 1);
 			}
 		}
 
@@ -602,7 +592,7 @@ public class Car {
 				Score scBrake = stats.getScore("Brake: " + (int) Math.floor(brake * 100) + "%");
 				Score scG = stats.getScore("G: " + (float) Math.floor((lastG + G) / 2 * 100) / 100 + "*32m/s²");
 				Score scEngineRPM = stats.getScore("RPM: " + ((int) engineRPM));
-				Score scSpeed = stats.getScore("Speed: " + ((int) (speed * 3.6)) + "Kb/h");
+				Score scSpeed = stats.getScore("Speed: " + ((int) (rSpeed.length() * 3.6)) + "Kb/h");
 				Score scCurrentGear = stats.getScore("Gear: " + gearNames[currentGear + Math.abs(minGear)]);
 
 				if (Chars4Cars.fuel) {
@@ -638,7 +628,8 @@ public class Car {
 
 		// Calculate car's speed
 		if (isOnGround()) {
-			if (Math.abs(speed) > 0) {
+			if (Math.abs(speed) > 0.02) {
+
 				slipFactor = 0;
 				sideAccel = (float) rotateScalar(speed, yaw).distance(rotateScalar(speed, lastYaw));
 
@@ -675,7 +666,7 @@ public class Car {
 			this.vx = 0;
 			this.vz = 0;
 		}
-		
+
 		if (notifyUpdate) {
 			CarUpdateEvent cue = new CarUpdateEvent(this);
 			Bukkit.getServer().getPluginManager().callEvent(cue);
@@ -696,7 +687,6 @@ public class Car {
 		car.setCustomName("§aChars4Cars Car:" + name + ":" + enginePower + ":" + mass + ":" + owner + ":" + fuel);
 		// *=*=*=*
 
-		
 	}
 
 	/**
@@ -929,7 +919,7 @@ public class Car {
 	 * @return The Location of the car.
 	 */
 	public Location getLocation() {
-		return new Location(car.getWorld(), this.x, this.y, this.z);
+		return new Location(car.getWorld(), this.x, this.y, this.z, this.yaw, this.pitch);
 	}
 
 	/**

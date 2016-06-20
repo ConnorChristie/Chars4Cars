@@ -51,6 +51,7 @@ public class Chars4Cars extends JavaPlugin {
 	public static Plugin plugin;
 	public static String commandSuccess;
 	public static String yourCarUnlocked;
+	public static String noPlace;
 
 	public static int updateDelta;
 	public static boolean exhaustSmoke;
@@ -78,7 +79,7 @@ public class Chars4Cars extends JavaPlugin {
 
 	public static double slabJumpVel = 0.3;
 	public static double stairJumpVel = 0.45;
-	public static String noPlace;
+	
 
 	@Override
 	public void onEnable() {

